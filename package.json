@@ -19,6 +19,7 @@
   },
   "scripts": {
     "start": "react-scripts start",
+    "start-api": "python -m flask run",
     "build": "react-scripts build",
     "test": "react-scripts test",
     "eject": "react-scripts eject"
