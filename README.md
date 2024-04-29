@@ -33,6 +33,25 @@ Before starting, make sure you have the following software installed on your com
 
 ## Run locally
 
+
+## Setup DB
+Run `api\Scripts\initdb.sql` 
+
+## Environment file
+Create a file called `.env`
+
+Add this info to it:
+
+```
+REACT_APP_BASE_URL="http://127.0.0.1:5000"
+FLASK_APP=api\app.py
+FLASK_ENV=development
+SQLALCHEMY_DATABASE_URI=postgresql://username:password@localhost/database
+```
+
+Note: the useername and password will be the when postgres was set up and Database is the database name which you have to create locally. 
+
+
 ### Backend 
 run `npm run start-api`
 
