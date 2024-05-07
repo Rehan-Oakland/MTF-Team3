@@ -25,3 +25,46 @@ CREATE TABLE Receipt (
     FOREIGN KEY (user_id) REFERENCES "User"(id)
 );
 
+-- Item Table 
+CREATE TABLE Item (
+    id SERIAL PRIMARY KEY,
+    item_name VARCHAR(100),
+    unit VARCHAR (5),
+    unit_price_BDT INT, 
+);
+
+-- School Table 
+CREATE TABLE School (
+    id SERIAL PRIMARY KEY,
+    school_name VARCHAR(100),
+    country VARCHAR(50),
+    address TEXT,
+    start_date DATE,
+);
+
+-- Project Table
+CREATE TABLE Project (
+    id SERIAL PRIMARY KEY,
+    project_code VARCHAR (100),
+    project_name VARCHAR (100),
+    country VARCHAR (50),
+    start_date DATE,
+);
+
+-- Purchase Table 
+CREATE TABLE Purchase (
+    id SERIAL PRIMARY KEY,
+    FOREIGN KEY (user_id) REFERENCES "User"(id),
+    FOREIGN KEY (item_id) REFERENCES Item (id),
+    FOREIGN KEY (project_code) REFERENCES Project (id),
+    FOREIGN KEY (school_name) REFERENCES School (id),
+    quantity INT, 
+    total_cost_BDT INT, 
+    date_purchased,
+);
+
+
+
+
+
+
