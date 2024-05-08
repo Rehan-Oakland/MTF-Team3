@@ -6,6 +6,8 @@ some info about the app
 
 Before starting, make sure you have the following software installed on your computer:
 
+Mac terminal: Install [Xcode and Homebrew](https://www.redswitches.com/blog/install-homebrew-on-mac/) 
+
 - [Python](https://www.python.org/downloads/) (>= 3.6)
 - [Node.js](https://nodejs.org/en/download/) (>= 10.x)
 - [Git](https://git-scm.com/)
@@ -30,9 +32,17 @@ Before starting, make sure you have the following software installed on your com
 
 5. Install Python libraries
 
+   Mac: input 'cd ./api' before below command
+   
     `pip install -r api/requirements.txt`
 
+   Mac: If libraries unable to be installed, create conda environment with Python==3.10;
 
+        'conda create -n charityENV python=3.10'
+        'conda activate charityENV'
+        'python -m pip install --upgrade pip'
+        'python -m pip install -r requirements.txt'
+ 
 ## Run locally
 
 
