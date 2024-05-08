@@ -39,15 +39,16 @@ Before starting, make sure you have the following software installed on your com
 ## Setup DB
  1. Open pgadmin (Windows : installed when installing postgres , Mac: use homebrew to install)
  2. Create Database Receipts 
- ![alt text](image.png)
-
+![image](https://github.com/Rehan-Oakland/MTF-Team3/assets/97108967/01adee5f-44d6-4d1c-aeee-2eed46106b4d)
 3. Start new Query 
-![alt text](image-1.png)
+![image-1](https://github.com/Rehan-Oakland/MTF-Team3/assets/97108967/18271c26-b120-4f7b-9723-215a58352434)
 
 4. Copy and paste sql commands from "api\Scripts\initdb.sql" file to Query in pgadmin
 
+
 5. Run commands to create tables
-![alt text](image-2.png)
+![image](https://github.com/Rehan-Oakland/MTF-Team3/assets/97108967/52e10da1-7517-4ec9-9743-9346decd72f4)
+
 
 
 ## Environment file
