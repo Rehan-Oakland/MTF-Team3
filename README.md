@@ -76,7 +76,7 @@ SQLALCHEMY_DATABASE_URI=postgresql://username:password@localhost/database
 ```
 **Replace username , password and database with the correct values**
 
-**MAC: update it to FLASK_APP=app/app.py**
+**MAC: update it to FLASK_APP=api/app.py**
 
 Note: the username and password will be the when postgres was set up and Database is the database name which you have to create locally. 
 
