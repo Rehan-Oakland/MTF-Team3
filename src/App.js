@@ -17,14 +17,15 @@ function App() {
           <Routes>
             <Route exact path="/" element={<LoginPage />} />
             <Route path="/home" element={<HomePage />} />
-            <Route
+            <Route path="/outstandingreceipt" element={<RejectedReceipt />} />
+            {/* <Route
               path="/outstandingreceipt"
               element={
                 <PrivateRoute>
                   <RejectedReceipt />
                 </PrivateRoute>
               }
-            />
+            /> */}
           </Routes>
         </SimpleSidebar>
       </Router>
