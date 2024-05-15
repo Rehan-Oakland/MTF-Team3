@@ -2,6 +2,13 @@ from flask import Flask, jsonify, request
 from flask_cors import CORS
 from flask_sqlalchemy import SQLAlchemy
 import os 
+from sqlalchemy.ext.declarative import declarative_base
+from datetime import datetime  # Import datetime for date/time handling
+
+from werkzeug.security import generate_password_hash, check_password_hash
+
+
+
 from dotenv import load_dotenv
 load_dotenv()
 
@@ -13,14 +20,50 @@ app.config['SQLALCHEMY_DATABASE_URI'] = os.getenv("SQLALCHEMY_DATABASE_URI")
 db = SQLAlchemy(app)
 
 ##EXAMPLE MODEL, needs to moved 
-class Users(db.Model):
+# Define User model
+class User(db.Model):
+    __tablename__ = 'User'
+
     id = db.Column(db.Integer, primary_key=True)
-    username = db.Column(db.String(80), unique=True, nullable=False)
-    email = db.Column(db.String(120), unique=True, nullable=False)
+    username = db.Column(db.String(120), unique=True, nullable=False)
+    password = db.Column(db.String(128), nullable=False)
+    admin = db.Column(db.Boolean, default=False, nullable=False)  # Added is_admin field
+    date_added = db.Column(db.DateTime, nullable=False, default=datetime.now())  # Added date_added field
+class Receipt(db.Model):
+    __tablename__ = 'receipt'
+
+    id = db.Column(db.Integer, primary_key=True)
+    date_added = db.Column(db.DateTime, default=datetime.now())
+    user_id = db.Column(db.Integer, db.ForeignKey('User.id'), nullable=False)  # Foreign key to User model
+    country = db.Column(db.String(50))
+    project_code = db.Column(db.String(50))
+    school_name = db.Column(db.String(100))
+    merchant_name = db.Column(db.String(100))
+    receipt_date = db.Column(db.Date)
+    receipt_url = db.Column(db.String(255))
+    status = db.Column(db.String(20), default='Pending', nullable=False)
+    reason = db.Column(db.Text, nullable=True)
+
+    user = db.relationship('User', backref='receipts')  
 
     def __repr__(self):
-        return '<User %r>' % self.username
-
+        return f"<Receipt(id={self.id}, user_id={self.user_id}, status={self.status})>"
+    
+    def to_dict(self):
+        return {
+        "id": self.id,
+        "user_id": self.user_id,
+        "country": self.country,
+        "project_code": self.project_code,
+        "merchant_name": self.merchant_name,
+        "school_name": self.school_name,
+        "reason": self.reason,
+        "receipt_url": self.receipt_url,
+        "receipt_date": self.receipt_date,
+        # ... other relevant receipt properties
+        "status": self.status,
+        }
+    
 @app.route('/', methods = ['GET', 'POST']) 
 def home(): 
     if(request.method == 'GET'): 
@@ -30,9 +73,55 @@ def home():
 
 @app.route('/users')
 def get_users():
-    users = Users.query.all()
+    users = User.query.all()
     return jsonify([{'id': user.id, 'username': user.username, 'email': user.email} for user in users])
 
-if __name__ == '__main__': 
+@app.route('/get_rejected_receipts', methods=['GET'])
+def get_rejected_receipts():
+    rejected_receipts = Receipt.query.filter_by(status='Rejected').all()
+
+    return jsonify([receipt.to_dict() for receipt in rejected_receipts])
+ 
+@app.route("/update_receipt_status" , methods = ["POST"])
+def update_receipt_status():
+    data =request.get_json()
+    email = data.get("email")
+      # Extract required information
+    receipt_id = data.get('id')
+    status = data.get('status')
+    reason = data.get('reason')
+    email = data.get('email')
+
+    # Error handling (check for missing data)
+    if not all([receipt_id, status, reason, email]):
+        return jsonify({'error': 'Missing required data'}), 400
+
+
+        # Find the receipt by ID
+    user = User.query.filter_by(username=email).first()
+
+    receipt = Receipt.query.get(receipt_id)
+    if not receipt:
+        return jsonify({'error': f'Receipt with ID {receipt_id} not found'}), 404
+
+    # Update receipt status and reason
+    receipt.status = status
+    receipt.reason = reason
+    receipt.user_id = user.id
+
+    # Commit changes to the database
+    try:
+        db.session.commit()
+    except Exception as e:
+        # Handle database errors gracefully (log or return specific error message)
+        return jsonify({'error': 'Failed to update receipt'}), 500
+
+    # Send success response
+    return jsonify({'message': f'Receipt {receipt_id} {status}ed'}), 200
+
+
+
+
+if __name__ == '__main__':
   
     app.run(debug = True) 
