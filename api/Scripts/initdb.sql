@@ -1,2 +1,10 @@
 CREATE DATABASE receipts;
+CREATE TABLE users (
+    id SERIAL PRIMARY KEY,
+    username VARCHAR(80) UNIQUE NOT NULL,
+    email VARCHAR(120) UNIQUE NOT NULL,
+    password VARCHAR(255) NOT NULL,
+    active BOOLEAN DEFAULT TRUE,
+    is_admin BOOLEAN DEFAULT FALSE
+);
 

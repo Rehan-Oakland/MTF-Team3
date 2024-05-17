@@ -11,11 +11,16 @@ load_dotenv()
 app = Flask(__name__)
 cors = CORS(app)
 app.config['SQLALCHEMY_DATABASE_URI'] = os.getenv("SQLALCHEMY_DATABASE_URI")
-app.config['SECRET_KEY'] = os.getenv("SECRET-KEY")
+app.config['SECRET_KEY'] = os.getenv("SECRET_KEY")
 
 db = SQLAlchemy(app)
 login_manager = LoginManager(app)
 login_manager.login_view = 'login'
+
+# Define custom unauthorized handler
+@login_manager.unauthorized_handler
+def unauthorized():
+    return jsonify({"message": "Unauthorized access"}), 401
 
 class Users(db.Model, UserMixin):
     id = db.Column(db.Integer, primary_key=True)
@@ -43,21 +48,32 @@ def get_users():
     users = Users.query.all()
     return jsonify([{'id': user.id, 'username': user.username, 'email': user.email} for user in users])
 
-@app.route('/register', methods=['POST'])
-def register():
-    json_data = request.get_json()
-    hashed_password = generate_password_hash(json_data['password'], method='sha256')
-    new_user = Users(
-        username=json_data['username'],
-        email=json_data['email'],
-        password=hashed_password,
-        is_admin=json_data.get('is_admin', False)  # Default to False unless specified
-    )
-    db.session.add(new_user)
-    db.session.commit()
-    return jsonify({"message": "User registered successfully"}), 201
 
-@app.route('/login', methods=['POST'])
+@app.route('/register', methods=['GET', 'POST'])
+def register():
+    try:
+        json_data = request.get_json()
+        print("Received registration data:", json_data)
+        
+        if not json_data or not 'username' in json_data or not 'email' in json_data or not 'password' in json_data:
+            return jsonify({"message": "Missing required fields"}), 400
+        
+        hashed_password = generate_password_hash(json_data['password'], method='pbkdf2:sha256')
+        new_user = Users(
+            username=json_data['username'],
+            email=json_data['email'],
+            password=hashed_password,
+            is_admin=json_data.get('is_admin', False)  # Default to False unless specified
+        )
+        db.session.add(new_user)
+        db.session.commit()
+        print("User registered successfully:", new_user)
+        return jsonify({"message": "User registered successfully"}), 201
+    except Exception as e:
+        print("Error during registration:", e)
+        return jsonify({"message": "Error during registration"}), 500
+
+@app.route('/login', methods=['GET', 'POST'])
 def login():
     json_data = request.get_json()
     user = Users.query.filter_by(username=json_data['username']).first()
@@ -72,9 +88,14 @@ def logout():
     logout_user()
     return jsonify({"message": "Logged out successfully"})
 
-# # Create the database tables within the app context
-# with app.app_context():
-#     db.create_all()
+# Create the database tables within the app context
+with app.app_context():
+    try:
+        print("Creating database tables...")
+        db.create_all()
+        print("Tables created successfully.")
+    except Exception as e:
+        print("Error creating tables:", e)
 
 if __name__ == '__main__': 
     app.run(debug = True) 
