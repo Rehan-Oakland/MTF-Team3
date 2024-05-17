@@ -6,12 +6,15 @@ import {
     FormHelperText,
   } from '@chakra-ui/react';
 
+  export default UploadReceipt;
   import { Button } from '@chakra-ui/react';
 
   function UploadReceipt() {
     const [users,setUsers ] = useState([]);
+    //const Amount() {
+      const format = (val) => val + `BDT` 
     const Upload = async () => {
-      try {
+    
         const response = await fetch(`${BASE_URL}/login`, {
           method: "POST",
     
@@ -19,7 +22,7 @@ import {
     
           body: JSON.stringify({ email, password }),
         })
-      }
+    
     };
   
     return (
@@ -37,17 +40,13 @@ import {
             <Input placeholder='DD/MM/YYYY'/>
           </FormControl>;
 
-          function Amount() {
-           const format = (val) => val + `BDT` 
-
-          return (
           <FormControl>
             <FormLabel>Amount</FormLabel>
             <NumberInput precision={2} Amount={format(value)}>
               <NumberInputField placeholder = '0.00'/>
             </NumberInput>
-          </FormControl>)
-          };
+          </FormControl>;
+          
 
           <FormControl>
             <FormLabel>Project Code</FormLabel>
@@ -72,11 +71,5 @@ import {
             <Button colorScheme='pink' size='md' onClick={Upload}>
               Submit
             </Button>
-          </Stack>; 
-        </Box>
-      </Box>
-    );
-  
-
-    export default UploadReceipt;
-
+          </Stack>;
+        Box>;
