@@ -24,3 +24,9 @@ column_mapping = {
     }
 }
 
+all_available ={
+    "SGS": ['Bread', 'Fruit', 'Milk', 'Rice', 'Vegetable', 'Lentils', 'Meat'],
+    "BADSHA": ['Oil(Liters)', 'Onion(kg)', 'Milk(Litres)', 'salt(kg)', 'Mix masala & Chillies(kg)', 'Lentil(Kg)', 'Spinach(kg)', 'Beans(kg)', 'Cauliflower(kg)', 'Tomato(kg)', 'Brinjal(kg)', 'Okra(kg)', 'Rice(kg)', 'Potato(kg)'],
+    "KORIM": ['Oil', 'Onion', 'Milk', 'Salt', 'Mix Masala and chillies', 'Lentils', 'Spinach', 'Beans', 'Cauliflower', 'Tomato', 'Brinjal', 'Okra', 'Rice', 'Potato']
+}
+
