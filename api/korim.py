@@ -19,59 +19,39 @@ class ColumnCell():
       
     def cell(self, key) -> BBox:
       
-      columns = utils.get_column_cell(self.table)
+      columns = utils.get_table_column(self.table)
       
       account_table = {}
       
-      for header, col in zip(config.table_headers["sayma"], columns):
+      for header, col in zip(config.table_headers["korim"], columns):
         account_table[header] = col
       
       return account_table.get(key)
 
-    def extras(self):
+    def total_amount(self):
+      table_rows = list(iter(self.table.content.values()))
+      table_rows = np.array(table_rows).flatten().tolist()
+      table_rows = [[pred, pred.bbox.x1, pred.bbox.y1, pred.bbox.x2, pred.bbox.y2] for pred in table_rows]
+      dx = pd.DataFrame(data = table_rows, columns = ["cell", "x1", "y1", "x2", "y2"])
+      dx["ht"] = dx["y2"] - dx["y1"]
+      dx.sort_values(by = ["x2", "ht"], ascending = [False, False], inplace = True)
+      dx.reset_index(drop = True, inplace = True)
       
-      x_threshold = round(self.img_shape[1] * 0.5)
-      y_threshold = round(self.img_shape[0] * 0.5)
+      col_y2 = dx.loc[0, "y2"]
+      col_x1 = dx.loc[0, "x1"]
       
-      total_value = False
-      data = []
-      
-      for pred in self.extraction:
-        bbox = utils.convert_word_bbox(pred[0])
-        word = pred[1][0]
-        condition = [ratio(word.lower(), w) >= 0.8 for w in ["paid", "due", "total"]]
-        if any(condition) and bbox[0][0] > x_threshold and bbox[0][1] > y_threshold:
-           item = np.array(bbox).flatten().tolist()
-           item.append(word)
-           data.append(item)
-      
-      if data:
-        dt = pd.DataFrame(data = data, columns = config.item_column)
-        upper_bound = np.min(dt.y0.values)
-        lower_bound = np.max(dt.y1.values)
-        detected_words = dt.word.values.tolist()
+      total = dx.loc[(dx["y2"] > col_y2) & (dx["x2"] > col_x1), :]
+      if not total.empty:
         for pred in self.extraction:
-          word = pred[1][0]
           bbox = utils.convert_word_bbox(pred[0])
-          centeroid = 0.5 * (bbox[0][1] + bbox[1][1])
-          if word not in detected_words and centeroid > upper_bound and centeroid < lower_bound:
-            total_value = True
-            item = np.array(bbox).flatten().tolist()
-            item.append(word)
-            t = pd.DataFrame(data = [item], columns = config.item_column)
-        if total_value:
-          dt = pd.concat([dt, t], axis = 0, ignore_index = True)
-        
-        return dt
+          if bbox[1][1] > col_y2 and 0.5 * (bbox[1][0] + bbox[0][0]) > col_x1:
+            total_value = pred[1][0]
+            return total_value
+        return None
     
     def original(self) -> pd.DataFrame:
       column_cell = self.cell(self.header)
       column_df = utils.get_column_text(column_cell.bbox, self.extraction)
-
-      extras_df = self.extras()
-
-      column_df = pd.merge(column_df, extras_df, on = config.item_column, how = "left", indicator = True)
-      column_df = column_df.loc[column_df["_merge"] == "left_only", config.item_column]
 
       column_df.sort_values(by = ["y0"], ascending = True, inplace = True)
       column_df.reset_index(drop = True, inplace = True)
@@ -83,15 +63,10 @@ class ColumnCell():
       return column_df
     
     def left(self) -> pd.DataFrame:
-      head = config.column_mapping["sayma"][self.header][0]
+      head = config.column_mapping["korim"][self.header][0]
 
       column_cell = self.cell(head)
       column_df = utils.get_column_text(column_cell.bbox, self.extraction)
-
-      extras_df = self.extras()
-
-      column_df = pd.merge(column_df, extras_df, on = config.item_column, how = "left", indicator = True)
-      column_df = column_df.loc[column_df["_merge"] == "left_only", config.item_column]
 
       column_df.sort_values(by = ["y0"], ascending = True, inplace = True)
       column_df.reset_index(drop = True, inplace = True)
@@ -103,15 +78,10 @@ class ColumnCell():
       return column_df
     
     def right(self) -> pd.DataFrame:
-      head = config.column_mapping["sayma"][self.header][1]
+      head = config.column_mapping["korim"][self.header][1]
 
       column_cell = self.cell(head)
       column_df = utils.get_column_text(column_cell.bbox, self.extraction)
-
-      extras_df = self.extras()
-
-      column_df = pd.merge(column_df, extras_df, on = config.item_column, how = "left", indicator = True)
-      column_df = column_df.loc[column_df["_merge"] == "left_only", config.item_column]
 
       column_df.sort_values(by = ["y0"], ascending = True, inplace = True)
       column_df.reset_index(drop = True, inplace = True)
@@ -123,13 +93,14 @@ class ColumnCell():
       return column_df
     
 
-
 def get_column(table: ExtractedTable, extraction: list,
                img: np.ndarray, header: str) -> pd.DataFrame:
   
   column = ColumnCell(table, extraction, img.shape, header)
   
   dt = column.original()
+  if header == "description":
+    dt = utils.patch_korim_description(dt)
   dt["centeroid"] = 0.5 * (dt["y0"] + dt["y1"])
   dt["gap"] = np.abs(dt["centeroid"].diff(-1))
 
@@ -253,7 +224,7 @@ def get_column(table: ExtractedTable, extraction: list,
 
 
 def extract(table: ExtractedTable, extraction: list, img: np.ndarray):
-  headers = config.table_headers.get("sayma")
+  headers = config.table_headers.get("korim")
   account_df = pd.DataFrame()
   for header in headers[1:]:
     col_df = get_column(table, extraction, img, header)
@@ -261,5 +232,5 @@ def extract(table: ExtractedTable, extraction: list, img: np.ndarray):
   account_df.reset_index(drop = False, inplace = True)
   account_df.columns = headers
   account_df["sl"] += 1
-  account_df = utils.sanitize_digits(account_df, key_account = "sayma")
+  account_df = utils.sanitize_digits(account_df, key_account = "korim")
   return account_df.fillna("")

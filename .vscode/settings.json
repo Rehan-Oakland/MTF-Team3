@@ -1,0 +1,10 @@
+{
+    "python.pythonPath": "C:\\Users\\zaina\\.conda\\envs\\charityENV\\python.exe",
+    "python.terminal.activateEnvironment": true,
+    "python.linting.pylintEnabled": true,
+    "python.condaPath": "C:\\ProgramData\\anaconda3\\Scripts\\conda.exe",
+    "terminal.integrated.shell.windows": "C:\\Windows\\System32\\cmd.exe",
+    "terminal.integrated.cwd": "C:\\Users\\zaina\\OneDrive - MMU\\Documents\\development\\charityRight\\MTF-Team3",
+    "terminal.integrated.shellArgs.windows": ["/k", "C:\\ProgramData\\anaconda3\\Scripts\\activate charityENV"],
+    "python.terminal.executeInFileDir": true,
+}
