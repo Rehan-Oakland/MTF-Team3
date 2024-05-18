@@ -92,3 +92,19 @@ def deduplicate(dx:pd.DataFrame, dy:pd.DataFrame) -> tuple:
     return dx.iloc[1:, :], dy
   
 
+def similarity_ratio(extracted_item: str, available_items: list):
+    receipt_items = {}
+    for element in available_items:
+        score = ratio(element, extracted_item)
+        receipt_items[element] = score
+    max_key = max(receipt_items, key = receipt_items.get)
+    if receipt_items.get(max_key) <0.7:
+        return extracted_item
+    else:
+        return max_key  
+    
+def receive_extracted_items(key_account:str, extracted_items: list):
+    available_items = config.all_available.get(key_account)
+    validated_items = [similarity_ratio(i, available_items) for i in extracted_items]
+    return validated_items
+ 
