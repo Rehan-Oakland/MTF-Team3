@@ -29,10 +29,12 @@ CREATE TABLE Receipt (
 CREATE TABLE Purchase (
     id SERIAL PRIMARY KEY,
     user_id INT,
-    item VARCHAR(50),
     project_code VARCHAR(50),
     school_name VARCHAR(100),
     receipt_id INT,
+    item VARCHAR(50),
+    unit_price_bdt INT,
+    unit VARCHAR(50),
     quantity INT, 
     total_cost_BDT INT, 
     date_purchased DATE

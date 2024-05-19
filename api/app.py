@@ -84,6 +84,22 @@ class Receipt(db.Model):
         "status": self.status,
         }
 
+class Purchase(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    user_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
+    project_code = db.Column(db.String(50), nullable=False)
+    school_name = db.Column(db.String(100), nullable=False)
+    receipt_id = db.Column(db.Integer, db.ForeignKey('receipt.id'), nullable=False)
+    item = db.Column(db.String(50), nullable=False)
+    unit = db.Column(db.String(50), nullable=False)
+    quantity = db.Column(db.Integer, nullable=False)
+    total_cost_bdt = db.Column(db.Integer, nullable=False)
+    unit_price_bdt = db.Column(db.Integer, nullable=False)
+    date_purchased = db.Column(db.Date, nullable=False, default=datetime.utcnow)
+
+    def __repr__(self):
+        return f'<Purchase {self.id}>'
+    
 
 # Define custom unauthorized handler
 @login_manager.unauthorized_handler
@@ -231,6 +247,38 @@ def upload_file():
 
   # Return success response
   return jsonify({'message': f'File {filename} uploaded successfully'}), 201
+
+@app.route('/purchases', methods=['GET'])
+def get_purchases():
+    school = request.args.get('school')
+    item = request.args.get('item')
+
+    query = Purchase.query
+
+    if school:
+        query = query.filter(Purchase.school_name == school)
+    
+    if item:
+        query = query.filter(Purchase.item == item)
+
+    purchases = query.all()
+
+    return jsonify([{
+        'id': p.id,
+        'user_id': p.user_id,
+        'project_code': p.project_code,
+        'school_name': p.school_name,
+        'receipt_id': p.receipt_id,
+        'item': p.item,
+        'unit': p.unit,
+        'quantity': p.quantity,
+        'total_cost_bdt': p.total_cost_bdt,
+        'date_purchased': p.date_purchased.isoformat()
+    } for p in purchases])
+
+
+
+
 # Create the database tables within the app context
 with app.app_context():
     try:
@@ -240,5 +288,8 @@ with app.app_context():
     except Exception as e:
         print("Error creating tables:", e)
 
+
+
 if __name__ == '__main__':
     app.run(debug=True)
+    

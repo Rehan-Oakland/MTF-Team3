@@ -78,21 +78,6 @@ function RejectedReceipt() {
       const userEmail = getUserEmail();
       if (!userEmail) {
         console.error("Failed to retrieve user email for API call.");
-        const getUserEmail = () => {
-          try {
-            const user = JSON.parse(localStorage.getItem("user"));
-            if (user?.admin && user?.email) {
-              return user.email;
-            }
-            return null; // Handle cases where user data is missing
-          } catch (error) {
-            console.error(
-              "Error retrieving user email from local storage:",
-              error
-            );
-            return null;
-          }
-        };
         return; // Handle cases where user email is unavailable
       }
 
