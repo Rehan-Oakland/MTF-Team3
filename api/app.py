@@ -7,10 +7,7 @@ from flask_login import UserMixin, LoginManager, login_user, login_required, cur
 from werkzeug.security import generate_password_hash, check_password_hash
 from werkzeug.utils import secure_filename
 from datetime import datetime  # Import datetime for date/time handling
-from inference import extraction  # Assuming extraction function is defined in inference.py
-
-
-from werkzeug.utils import secure_filename
+# from inference import extraction  # Assuming extraction function is defined in inference.py
 
 # Load environment variables from .env file
 load_dotenv()
@@ -32,14 +29,10 @@ os.makedirs(app.config['UPLOAD_FOLDER'], exist_ok=True)
 db = SQLAlchemy(app)
 login_manager = LoginManager(app)
 login_manager.login_view = 'login'
-
-
-
-
   
 # Define User model
 class User(db.Model):
-    __tablename__ = 'User'
+    __tablename__ = 'user'
 
     id = db.Column(db.Integer, primary_key=True)
     username = db.Column(db.String(120), unique=True, nullable=False)
@@ -48,14 +41,12 @@ class User(db.Model):
     date_added = db.Column(db.DateTime, nullable=False, default=datetime.now())  # Added date_added field
     is_active = db.Column(db.Boolean(), default=True)
 
-
-    
 class Receipt(db.Model):
     __tablename__ = 'receipt'
 
     id = db.Column(db.Integer, primary_key=True)
     date_added = db.Column(db.DateTime, default=datetime.now())
-    user_id = db.Column(db.Integer, db.ForeignKey('User.id'), nullable=False)  # Foreign key to User model
+    user_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)  # Foreign key to User model
     country = db.Column(db.String(50))
     project_code = db.Column(db.String(50))
     school_name = db.Column(db.String(100))
@@ -106,7 +97,6 @@ class Purchase(db.Model):
 @login_manager.unauthorized_handler
 def unauthorized():
     return jsonify({"message": "Unauthorized access"}), 401
-
 
 @login_manager.user_loader
 def load_user(user_id):
@@ -177,10 +167,9 @@ def upload_receipt():
         filepath = os.path.join(app.config['UPLOAD_FOLDER'], filename)
         file.save(filepath)
         
-        # Call the extraction function
-        extraction_result = extraction(filepath)
-        
-        new_receipt = Receipts(
+        # extraction_result = extraction(filepath)
+
+        new_receipt = Receipt(
             user_id=current_user.id,
             filename=filename,
             country=request.form.get('country'),
@@ -189,8 +178,8 @@ def upload_receipt():
             merchant_name=request.form.get('merchant_name'),
             receipt_date=datetime.strptime(request.form.get('receipt_date'), '%Y-%m-%d'),
             receipt_url=filepath,
-            status=extraction_result.get('status', 'Pending'),
-            reason=extraction_result.get('reason')
+            # status=extraction_result.get('status', 'Pending'),
+            # reason=extraction_result.get('reason')
         )
         db.session.add(new_receipt)
         db.session.commit()
@@ -271,8 +260,10 @@ def get_purchases():
         'date_purchased': p.date_purchased.isoformat()
     } for p in purchases])
 
-
-
+@app.route('/check_session', methods=['GET'])
+@login_required
+def check_session():
+    return jsonify({"message": f"User {current_user.username} is logged in"})
 
 # Create the database tables within the app context
 with app.app_context():
@@ -282,8 +273,6 @@ with app.app_context():
         print("Tables created successfully.")
     except Exception as e:
         print("Error creating tables:", e)
-
-
 
 if __name__ == '__main__':
     app.run(debug=True)
