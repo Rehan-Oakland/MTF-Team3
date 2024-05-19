@@ -1,82 +1,133 @@
-import React, { useState } from 'react';
-import {Flex,
-    Stack,
-    Link,
+import React, { useState, useEffect } from "react";
+
+import { useNavigate } from "react-router-dom";
+import { toast } from "react-toastify";
+import "react-toastify/dist/ReactToastify.css"; // Import the CSS
+
+import {
   Box,
-  Button,
-  Input,
   FormControl,
   FormLabel,
-  Heading,Text,useColorModeValue,Checkbox
-} from '@chakra-ui/react';
-import { useNavigate } from 'react-router-dom';
-import sha256 from 'crypto-js/sha256';
-import { enc } from 'crypto-js';
+  Input,
+  Button,
+  Link,
+  Stack,
+  Text,
+} from "@chakra-ui/react";
 
-function LoginPage() {
-  const [username, setUsername] = useState('');
-  const [password, setPassword] = useState('');
+const BASE_URL = process.env.REACT_APP_BASE_URL;
+
+function LoginPage({ onSuccess }) {
+  const [email, setEmail] = useState("");
+
+  const [password, setPassword] = useState("");
+
+  const [errorMessage, setErrorMessage] = useState(null);
+
   const navigate = useNavigate();
-  const BASE_URL = process.env.REACT_APP_BASE_URL;
 
-  const handleLogin = async () => {
+  const handleSubmit = async (event) => {
+    event.preventDefault();
+
     try {
-      const hashedPassword = sha256(password).toString(enc.Hex);
-      
-      const response = await fetch(BASE_URL + '/login', {
-        crossDomain:true,
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ username, password: hashedPassword }),
+      const response = await fetch(`${BASE_URL}/login`, {
+        method: "POST",
+
+        headers: { "Content-Type": "application/json" },
+
+        body: JSON.stringify({ email, password }),
       });
 
-      if (response.ok) {
-        // If login successful, navigate to home page
-        navigate('/home');
+      if (!response.ok) {
+        setErrorMessage("error.message");
+        toast.error("invalid Username or password");
+        throw new Error(`Error: ${response.statusText}`);
+      }
+
+      const data = await response.json();
+
+      localStorage.setItem("user", JSON.stringify(data));
+      // localStorage.setItem("is_admin", user.isAdmin);
+      console.log(data);
+
+      if (data.admin) {
+        navigate("/outstandingreceipt");
       } else {
-        const errorData = await response.json();
-        alert(errorData.message || 'Login failed');
+        navigate("/uploadreceipt"); // Redirect to home page after successful login
       }
     } catch (error) {
-      console.error('Error logging in:', error);
-      alert('An error occurred while logging in');
+      setErrorMessage(error.message);
     }
   };
+  useEffect(() => {
+    if (errorMessage) {
+      toast.error(errorMessage);
+    }
+  }, [errorMessage]); // Update toast on error state change
 
   return (
     <Box
-      width="100%"
-      height="100vh"
-      display="flex"
-      justifyContent="center"
-      alignItems="center"
+      maxW="400px"
+      mx="auto"
+      mt="50px"
+      p="6"
+      bg="white"
+      boxShadow="lg"
+      borderRadius="md"
     >
-      <Box width="400px" padding="6" boxShadow="lg" borderRadius="md">
-        <Heading mb="6">Login</Heading>
-        <FormControl>
-          <FormLabel>Username</FormLabel>
-          <Input
-            type="text"
-            placeholder="Enter your username"
-            value={username}
-            onChange={(e) => setUsername(e.target.value)}
-          />
-        </FormControl>
-        <FormControl mt="4">
-          <FormLabel>Password</FormLabel>
-          <Input
-            type="password"
-            placeholder="Enter your password"
-            value={password}
-            onChange={(e) => setPassword(e.target.value)}
-          />
-        </FormControl>
-        <Button mt="6" colorScheme="blue" onClick={handleLogin}>
-          Login
-        </Button>
-      </Box>
+      <form
+        className="form"
+        id="login-form"
+        autoComplete="off"
+        onSubmit={handleSubmit}
+      >
+        <Stack spacing={4}>
+          <FormControl>
+            <FormLabel htmlFor="email">Your email</FormLabel>
+
+            <Input
+              type="email"
+              id="email"
+              name="email"
+              placeholder="Email"
+              required
+              pb-role="username"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+            />
+          </FormControl>
+
+          <FormControl className="password-group">
+            <FormLabel htmlFor="password">Password</FormLabel>
+
+            <Input
+              type="password"
+              id="password"
+              name="password"
+              placeholder="Password"
+              required
+              pb-role="password"
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+            />
+          </FormControl>
+
+          <Text textAlign="right">
+            <Link to={`${BASE_URL}/forgot-password`}>Forgot password?</Link>
+          </Text>
+
+          <Button
+            type="submit"
+            colorScheme="pink"
+            variant="solid"
+            color="white"
+            bg="#E42281"
+            pb-role="submit"
+          >
+            Sign in
+          </Button>
+        </Stack>
+      </form>
     </Box>
   );
 }
