@@ -5,6 +5,7 @@ import HomePage from "./components/HomePage";
 import RejectedReceipt from "./components/RejectReceiptPage";
 import UploadReceipt from "./components/UploadReceipts";
 import RegisterPage from "./components/RegisterPage";
+import ViewPurchasesPage from "./components/ViewPurchases";
 import { ChakraProvider } from "@chakra-ui/react";
 import SimpleSidebar from "./components/NavBar";
 import PrivateRoute from "./PrivateRoute";
@@ -25,6 +26,7 @@ function App() {
               <Route path="/home" element={<HomePage />} />
               <Route path="/outstandingreceipt" element={<RejectedReceipt />} />
               <Route path="/upload" element={<UploadReceipt />} />
+              <Route path="/viewpurchases" element={<ViewPurchasesPage />} />
               {/* <Route
               path="/outstandingreceipt"
               element={

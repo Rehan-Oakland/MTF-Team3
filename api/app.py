@@ -84,6 +84,22 @@ class Receipt(db.Model):
         "status": self.status,
         }
 
+class Purchase(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    user_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
+    project_code = db.Column(db.String(50), nullable=False)
+    school_name = db.Column(db.String(100), nullable=False)
+    receipt_id = db.Column(db.Integer, db.ForeignKey('receipt.id'), nullable=False)
+    item = db.Column(db.String(50), nullable=False)
+    unit = db.Column(db.String(50), nullable=False)
+    quantity = db.Column(db.Integer, nullable=False)
+    total_cost_bdt = db.Column(db.Integer, nullable=False)
+    unit_price_bdt = db.Column(db.Integer, nullable=False)
+    date_purchased = db.Column(db.Date, nullable=False, default=datetime.utcnow)
+
+    def __repr__(self):
+        return f'<Purchase {self.id}>'
+    
 
 # Define custom unauthorized handler
 @login_manager.unauthorized_handler
@@ -159,6 +175,8 @@ def upload_receipt():
         filename = secure_filename(file.filename)
         filepath = os.path.join(app.config['UPLOAD_FOLDER'], filename)
         file.save(filepath)
+
+
         
         new_receipt = Receipts(user_id=current_user.id, filename=filename)
         db.session.add(new_receipt)
@@ -209,28 +227,39 @@ def update_receipt_status():
     # Send success response
     return jsonify({'message': f'Receipt {receipt_id} {status}ed'}), 200
 
-@app.route('/upload', methods=['POST'])
-def upload_file():
-  # Check if file is present in the request
-  if 'file' not in request.files:
-    return jsonify({'error': 'No file uploaded'}), 400
 
-  file = request.files['file']
-  # Check if filename is empty
-  if file.filename == '':
-    return jsonify({'error': 'No selected file'}), 400
 
-  # Save the file to the upload directory (optional)
-  if not os.path.exists(UPLOAD_FOLDER):
-    os.makedirs(UPLOAD_FOLDER)
-  filename = secure_filename(file.filename)  # Use secure_filename to prevent security vulnerabilities
-  file.save(os.path.join(UPLOAD_FOLDER, filename))
+@app.route('/purchases', methods=['GET'])
+def get_purchases():
+    school = request.args.get('school')
+    item = request.args.get('item')
 
-  # Process the uploaded file (replace with your logic)
-  # ... (e.g., read file contents, extract data)
+    query = Purchase.query
 
-  # Return success response
-  return jsonify({'message': f'File {filename} uploaded successfully'}), 201
+    if school:
+        query = query.filter(Purchase.school_name == school)
+    
+    if item:
+        query = query.filter(Purchase.item == item)
+
+    purchases = query.all()
+
+    return jsonify([{
+        'id': p.id,
+        'user_id': p.user_id,
+        'project_code': p.project_code,
+        'school_name': p.school_name,
+        'receipt_id': p.receipt_id,
+        'item': p.item,
+        'unit': p.unit,
+        'quantity': p.quantity,
+        'total_cost_bdt': p.total_cost_bdt,
+        'date_purchased': p.date_purchased.isoformat()
+    } for p in purchases])
+
+
+
+
 # Create the database tables within the app context
 with app.app_context():
     try:
@@ -240,5 +269,8 @@ with app.app_context():
     except Exception as e:
         print("Error creating tables:", e)
 
+
+
 if __name__ == '__main__':
     app.run(debug=True)
+    

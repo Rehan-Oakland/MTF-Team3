@@ -25,7 +25,7 @@ const LinkItems = [
     icon: FiTrendingUp,
     url: "/outstandingreceipt",
   },
-  { name: "View Receipt", icon: FiStar, url: "/viewreceipt" },
+  { name: "View Purchase", icon: FiStar, url: "/viewpurchases" },
 ];
 
 const SimpleSidebar = ({ children }) => {
