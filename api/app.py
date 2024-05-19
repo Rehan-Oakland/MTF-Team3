@@ -175,6 +175,8 @@ def upload_receipt():
         filename = secure_filename(file.filename)
         filepath = os.path.join(app.config['UPLOAD_FOLDER'], filename)
         file.save(filepath)
+
+
         
         new_receipt = Receipts(user_id=current_user.id, filename=filename)
         db.session.add(new_receipt)
@@ -225,28 +227,7 @@ def update_receipt_status():
     # Send success response
     return jsonify({'message': f'Receipt {receipt_id} {status}ed'}), 200
 
-@app.route('/upload', methods=['POST'])
-def upload_file():
-  # Check if file is present in the request
-  if 'file' not in request.files:
-    return jsonify({'error': 'No file uploaded'}), 400
 
-  file = request.files['file']
-  # Check if filename is empty
-  if file.filename == '':
-    return jsonify({'error': 'No selected file'}), 400
-
-  # Save the file to the upload directory (optional)
-  if not os.path.exists(UPLOAD_FOLDER):
-    os.makedirs(UPLOAD_FOLDER)
-  filename = secure_filename(file.filename)  # Use secure_filename to prevent security vulnerabilities
-  file.save(os.path.join(UPLOAD_FOLDER, filename))
-
-  # Process the uploaded file (replace with your logic)
-  # ... (e.g., read file contents, extract data)
-
-  # Return success response
-  return jsonify({'message': f'File {filename} uploaded successfully'}), 201
 
 @app.route('/purchases', methods=['GET'])
 def get_purchases():
