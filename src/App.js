@@ -3,6 +3,7 @@ import { BrowserRouter as Router, Routes, Route } from "react-router-dom";
 import LoginPage from "./components/LoginPage";
 import HomePage from "./components/HomePage";
 import RejectedReceipt from "./components/RejectReceiptPage";
+import UploadReceipt from './components/UploadReceipts';
 import { ChakraProvider } from "@chakra-ui/react";
 import SimpleSidebar from "./components/NavBar";
 import PrivateRoute from "./PrivateRoute";
@@ -18,6 +19,7 @@ function App() {
             <Route exact path="/" element={<LoginPage />} />
             <Route path="/home" element={<HomePage />} />
             <Route path="/outstandingreceipt" element={<RejectedReceipt />} />
+            <Route path="/upload" element={<UploadReceipt />} />
             {/* <Route
               path="/outstandingreceipt"
               element={
