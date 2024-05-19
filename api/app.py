@@ -7,6 +7,7 @@ from flask_login import UserMixin, LoginManager, login_user, login_required, cur
 from werkzeug.security import generate_password_hash, check_password_hash
 from werkzeug.utils import secure_filename
 from datetime import datetime  # Import datetime for date/time handling
+from inference import extraction  # Assuming extraction function is defined in inference.py
 
 
 from werkzeug.utils import secure_filename
@@ -64,7 +65,7 @@ class Receipt(db.Model):
     status = db.Column(db.String(20), default='Pending', nullable=False)
     reason = db.Column(db.Text, nullable=True)
 
-    user = db.relationship('User', backref='receipts')  
+    user = db.relationship('User', backref='receipts')
 
     def __repr__(self):
         return f"<Receipt(id={self.id}, user_id={self.user_id}, status={self.status})>"
@@ -175,14 +176,27 @@ def upload_receipt():
         filename = secure_filename(file.filename)
         filepath = os.path.join(app.config['UPLOAD_FOLDER'], filename)
         file.save(filepath)
-
-
         
-        new_receipt = Receipts(user_id=current_user.id, filename=filename)
+        # Call the extraction function
+        extraction_result = extraction(filepath)
+        
+        new_receipt = Receipts(
+            user_id=current_user.id,
+            filename=filename,
+            country=request.form.get('country'),
+            project_code=request.form.get('project_code'),
+            school_name=request.form.get('school_name'),
+            merchant_name=request.form.get('merchant_name'),
+            receipt_date=datetime.strptime(request.form.get('receipt_date'), '%Y-%m-%d'),
+            receipt_url=filepath,
+            status=extraction_result.get('status', 'Pending'),
+            reason=extraction_result.get('reason')
+        )
         db.session.add(new_receipt)
         db.session.commit()
         
         return jsonify({"message": "Receipt uploaded successfully", "filename": filename}), 201
+
       
 @app.route('/get_rejected_receipts', methods=['GET'])
 def get_rejected_receipts():
