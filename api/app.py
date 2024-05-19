@@ -1,25 +1,51 @@
-from flask import Flask, jsonify, request 
+import os
+from dotenv import load_dotenv
+from flask import Flask, jsonify, request
 from flask_cors import CORS
 from flask_sqlalchemy import SQLAlchemy
-import os 
-from sqlalchemy.ext.declarative import declarative_base
+from flask_login import UserMixin, LoginManager, login_user, login_required, current_user, logout_user
+from werkzeug.security import generate_password_hash, check_password_hash
+from werkzeug.utils import secure_filename
 from datetime import datetime  # Import datetime for date/time handling
 
-from werkzeug.security import generate_password_hash, check_password_hash
 
 
-
-from dotenv import load_dotenv
+# Load environment variables from .env file
 load_dotenv()
 
-
+# Initialize Flask app
 app = Flask(__name__)
 cors = CORS(app)
-# TODO: update postgres
-app.config['SQLALCHEMY_DATABASE_URI'] = os.getenv("SQLALCHEMY_DATABASE_URI")
-db = SQLAlchemy(app)
 
-##EXAMPLE MODEL, needs to moved 
+# Set configuration from environment variables
+app.config['SQLALCHEMY_DATABASE_URI'] = os.getenv("SQLALCHEMY_DATABASE_URI")
+app.config['SECRET_KEY'] = os.getenv("SECRET_KEY")
+app.config['UPLOAD_FOLDER'] = 'uploads/'  # Folder to store uploaded receipts
+app.config['MAX_CONTENT_LENGTH'] = 16 * 1024 * 1024  # Limit upload size to 16MB
+
+# Ensure the upload folder exists
+os.makedirs(app.config['UPLOAD_FOLDER'], exist_ok=True)
+
+# Initialize database and login manager
+db = SQLAlchemy(app)
+login_manager = LoginManager(app)
+login_manager.login_view = 'login'
+
+# Define custom unauthorized handler
+@login_manager.unauthorized_handler
+def unauthorized():
+    return jsonify({"message": "Unauthorized access"}), 401
+
+
+@login_manager.user_loader
+def load_user(user_id):
+    return Users.query.get(int(user_id))
+
+@app.route('/', methods=['GET', 'POST'])
+def home():
+    return jsonify({'data': "hello world"})
+
+  
 # Define User model
 class User(db.Model):
     __tablename__ = 'User'
@@ -29,6 +55,7 @@ class User(db.Model):
     password = db.Column(db.String(128), nullable=False)
     admin = db.Column(db.Boolean, default=False, nullable=False)  # Added is_admin field
     date_added = db.Column(db.DateTime, nullable=False, default=datetime.now())  # Added date_added field
+    
 class Receipt(db.Model):
     __tablename__ = 'receipt'
 
@@ -72,12 +99,71 @@ def home():
         return jsonify({'data': data}) 
 
 @app.route('/users')
+@login_required
 def get_users():
     users = User.query.all()
     return jsonify([{'id': user.id, 'username': user.username, 'email': user.email} for user in users])
 
-@app.route('/get_rejected_receipts', methods=['GET'])
-def get_rejected_receipts():
+@app.route('/register', methods=['GET', 'POST'])
+def register():
+    try:
+        json_data = request.get_json()
+        print("Received registration data:", json_data)
+        
+        if not json_data or not 'username' in json_data or not 'email' in json_data or not 'password' in json_data:
+            return jsonify({"message": "Missing required fields"}), 400
+        
+        hashed_password = generate_password_hash(json_data['password'], method='pbkdf2:sha256')
+        new_user = Users(
+            username=json_data['username'],
+            email=json_data['email'],
+            password=hashed_password,
+            is_admin=json_data.get('is_admin', False)  # Default to False unless specified
+        )
+        db.session.add(new_user)
+        db.session.commit()
+        print("User registered successfully:", new_user)
+        return jsonify({"message": "User registered successfully"}), 201
+    except Exception as e:
+        print("Error during registration:", e)
+        return jsonify({"message": "Error during registration"}), 500
+
+@app.route('/login', methods=['GET', 'POST'])
+def login():
+    json_data = request.get_json()
+    user = Users.query.filter_by(username=json_data['username']).first()
+    if user and check_password_hash(user.password, json_data['password']):
+        login_user(user)
+        return jsonify({"message": "Logged in successfully"})
+    return jsonify({"message": "Invalid username or password"}), 401
+
+@app.route('/logout')
+@login_required
+def logout():
+    logout_user()
+    return jsonify({"message": "Logged out successfully"})
+
+@app.route('/upload_receipt', methods=['GET', 'POST'])
+@login_required
+def upload_receipt():
+    if 'file' not in request.files:
+        return jsonify({"message": "No file part"}), 400
+    file = request.files['file']
+    if file.filename == '':
+        return jsonify({"message": "No selected file"}), 400
+    if file:
+        filename = secure_filename(file.filename)
+        filepath = os.path.join(app.config['UPLOAD_FOLDER'], filename)
+        file.save(filepath)
+        
+        new_receipt = Receipts(user_id=current_user.id, filename=filename)
+        db.session.add(new_receipt)
+        db.session.commit()
+        
+        return jsonify({"message": "Receipt uploaded successfully", "filename": filename}), 201
+      
+ @app.route('/get_rejected_receipts', methods=['GET'])
+ def get_rejected_receipts():
     rejected_receipts = Receipt.query.filter_by(status='Rejected').all()
 
     return jsonify([receipt.to_dict() for receipt in rejected_receipts])
@@ -119,9 +205,14 @@ def update_receipt_status():
     # Send success response
     return jsonify({'message': f'Receipt {receipt_id} {status}ed'}), 200
 
-
-
+# Create the database tables within the app context
+with app.app_context():
+    try:
+        print("Creating database tables...")
+        db.create_all()
+        print("Tables created successfully.")
+    except Exception as e:
+        print("Error creating tables:", e)
 
 if __name__ == '__main__':
-  
-    app.run(debug = True) 
+    app.run(debug=True)
