@@ -9,11 +9,12 @@ from werkzeug.utils import secure_filename
 from datetime import datetime  # Import datetime for date/time handling
 
 
+from werkzeug.utils import secure_filename
 
 # Load environment variables from .env file
 load_dotenv()
 
-# Initialize Flask app
+UPLOAD_FOLDER = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'uploads')
 app = Flask(__name__)
 cors = CORS(app)
 
@@ -31,19 +32,8 @@ db = SQLAlchemy(app)
 login_manager = LoginManager(app)
 login_manager.login_view = 'login'
 
-# Define custom unauthorized handler
-@login_manager.unauthorized_handler
-def unauthorized():
-    return jsonify({"message": "Unauthorized access"}), 401
 
 
-@login_manager.user_loader
-def load_user(user_id):
-    return Users.query.get(int(user_id))
-
-@app.route('/', methods=['GET', 'POST'])
-def home():
-    return jsonify({'data': "hello world"})
 
   
 # Define User model
@@ -55,6 +45,9 @@ class User(db.Model):
     password = db.Column(db.String(128), nullable=False)
     admin = db.Column(db.Boolean, default=False, nullable=False)  # Added is_admin field
     date_added = db.Column(db.DateTime, nullable=False, default=datetime.now())  # Added date_added field
+    is_active = db.Column(db.Boolean(), default=True)
+
+
     
 class Receipt(db.Model):
     __tablename__ = 'receipt'
@@ -90,7 +83,18 @@ class Receipt(db.Model):
         # ... other relevant receipt properties
         "status": self.status,
         }
-    
+
+
+# Define custom unauthorized handler
+@login_manager.unauthorized_handler
+def unauthorized():
+    return jsonify({"message": "Unauthorized access"}), 401
+
+
+@login_manager.user_loader
+def load_user(user_id):
+    return User.query.get(int(user_id))
+
 @app.route('/', methods = ['GET', 'POST']) 
 def home(): 
     if(request.method == 'GET'): 
@@ -110,15 +114,14 @@ def register():
         json_data = request.get_json()
         print("Received registration data:", json_data)
         
-        if not json_data or not 'username' in json_data or not 'email' in json_data or not 'password' in json_data:
+        if not json_data or not 'email' in json_data or not 'password' in json_data:
             return jsonify({"message": "Missing required fields"}), 400
         
         hashed_password = generate_password_hash(json_data['password'], method='pbkdf2:sha256')
-        new_user = Users(
-            username=json_data['username'],
-            email=json_data['email'],
+        new_user = User(
+            username=json_data['email'],
             password=hashed_password,
-            is_admin=json_data.get('is_admin', False)  # Default to False unless specified
+            admin=json_data.get('admin', False)  # Default to False unless specified
         )
         db.session.add(new_user)
         db.session.commit()
@@ -131,10 +134,11 @@ def register():
 @app.route('/login', methods=['GET', 'POST'])
 def login():
     json_data = request.get_json()
-    user = Users.query.filter_by(username=json_data['username']).first()
+    print(json_data)
+    user = User.query.filter_by(username=json_data['username']).first()
     if user and check_password_hash(user.password, json_data['password']):
-        login_user(user)
-        return jsonify({"message": "Logged in successfully"})
+        # login_user(user)
+        return jsonify({ "email" : json_data['username'] , "admin": user.admin})
     return jsonify({"message": "Invalid username or password"}), 401
 
 @app.route('/logout')
@@ -162,8 +166,8 @@ def upload_receipt():
         
         return jsonify({"message": "Receipt uploaded successfully", "filename": filename}), 201
       
- @app.route('/get_rejected_receipts', methods=['GET'])
- def get_rejected_receipts():
+@app.route('/get_rejected_receipts', methods=['GET'])
+def get_rejected_receipts():
     rejected_receipts = Receipt.query.filter_by(status='Rejected').all()
 
     return jsonify([receipt.to_dict() for receipt in rejected_receipts])
@@ -205,6 +209,28 @@ def update_receipt_status():
     # Send success response
     return jsonify({'message': f'Receipt {receipt_id} {status}ed'}), 200
 
+@app.route('/upload', methods=['POST'])
+def upload_file():
+  # Check if file is present in the request
+  if 'file' not in request.files:
+    return jsonify({'error': 'No file uploaded'}), 400
+
+  file = request.files['file']
+  # Check if filename is empty
+  if file.filename == '':
+    return jsonify({'error': 'No selected file'}), 400
+
+  # Save the file to the upload directory (optional)
+  if not os.path.exists(UPLOAD_FOLDER):
+    os.makedirs(UPLOAD_FOLDER)
+  filename = secure_filename(file.filename)  # Use secure_filename to prevent security vulnerabilities
+  file.save(os.path.join(UPLOAD_FOLDER, filename))
+
+  # Process the uploaded file (replace with your logic)
+  # ... (e.g., read file contents, extract data)
+
+  # Return success response
+  return jsonify({'message': f'File {filename} uploaded successfully'}), 201
 # Create the database tables within the app context
 with app.app_context():
     try:

@@ -5,6 +5,8 @@ CREATE TABLE "User" (
     password VARCHAR(50) NOT NULL,
     admin BOOLEAN NOT NULL DEFAULT FALSE,
     date_added TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+    is_active BOOLEAN DEFAULT TRUE
+
 );
 
 -- Receipt Table

@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useContext } from "react";
 import {
   IconButton,
   Box,
@@ -11,38 +11,33 @@ import {
   DrawerContent,
   Text,
   useDisclosure,
-  BoxProps,
-  FlexProps,
+  Button,
 } from "@chakra-ui/react";
-import {
-  FiHome,
-  FiTrendingUp,
-  FiCompass,
-  FiStar,
-  FiSettings,
-  FiMenu,
-} from "react-icons/fi";
-import { useLocation } from "react-router-dom";
-const LinkItems = [
-  { name: "Home", icon: FiHome, url: "/" }, // Set URL for Home
-  { name: "Upload Receipt", icon: FiTrendingUp, url: "/uploadreceipt" },
+import { FiHome, FiTrendingUp, FiStar, FiMenu } from "react-icons/fi";
+import { useLocation, useNavigate } from "react-router-dom";
+import { AuthContext } from "../AuthContext"; // Import AuthContext
 
+const LinkItems = [
+  { name: "Home", icon: FiHome, url: "/" },
+  { name: "Upload Receipt", icon: FiTrendingUp, url: "/upload" },
   {
     name: "Outstanding Receipts",
     icon: FiTrendingUp,
     url: "/outstandingreceipt",
   },
-  { name: "View Receipt", icon: FiStar, url: "/viewreceipt" }, // Replace URL as needed
+  { name: "View Receipt", icon: FiStar, url: "/viewreceipt" },
 ];
+
 const SimpleSidebar = ({ children }) => {
   const { isOpen, onOpen, onClose } = useDisclosure();
+  const { isLoggedIn, logout } = useContext(AuthContext); // Get isLoggedIn and logout from context
 
   return (
     <Box minH="100vh" bg="white">
-      {" "}
-      {/* Set background color to white */}
       <SidebarContent
         onClose={onClose}
+        isLoggedIn={isLoggedIn}
+        logout={logout}
         display={{ base: "none", md: "block" }}
       />
       <Drawer
@@ -55,7 +50,11 @@ const SimpleSidebar = ({ children }) => {
         size="full"
       >
         <DrawerContent>
-          <SidebarContent onClose={onClose} />
+          <SidebarContent
+            onClose={onClose}
+            isLoggedIn={isLoggedIn}
+            logout={logout}
+          />
         </DrawerContent>
       </Drawer>
       <MobileNav display={{ base: "flex", md: "none" }} onOpen={onOpen} />
@@ -65,11 +64,19 @@ const SimpleSidebar = ({ children }) => {
     </Box>
   );
 };
-const SidebarContent = ({ onClose, ...rest }) => {
-  const location = useLocation(); // Get current location from react-router-dom
+
+const SidebarContent = ({ onClose, isLoggedIn, logout, ...rest }) => {
+  const location = useLocation();
+  const navigate = useNavigate();
+  const handleLogout = () => {
+    logout();
+    navigate("/"); // Redirect to login page
+  };
 
   return (
-    <Box
+    <Flex
+      direction="column"
+      justifyContent="space-between"
       bg={useColorModeValue("white", "gray.900")}
       borderRight="1px"
       borderRightColor={useColorModeValue("gray.200", "gray.700")}
@@ -78,30 +85,42 @@ const SidebarContent = ({ onClose, ...rest }) => {
       h="full"
       {...rest}
     >
-      <Flex h="20" alignItems="center" mx="8" justifyContent="space-between">
-        <Box
-          as="img"
-          src="https://www.charityright.org.uk/front/images/logo.png"
-          alt="Logo"
-          h="auto"
-          w="150px"
-        />{" "}
-        {/* Replace logo with image */}
-        <CloseButton display={{ base: "flex", md: "none" }} onClick={onClose} />
-      </Flex>
-      {LinkItems.map((link) => (
-        <NavItem
-          key={link.name}
-          icon={link.icon}
-          url={link.url}
-          isActive={location.pathname === link.url} // Check if link matches current URL
-        >
-          {link.name}
-        </NavItem>
-      ))}
-    </Box>
+      <Box>
+        <Flex h="20" alignItems="center" mx="8" justifyContent="space-between">
+          <Box
+            as="img"
+            src="https://www.charityright.org.uk/front/images/logo.png"
+            alt="Logo"
+            h="auto"
+            w="150px"
+          />
+          <CloseButton
+            display={{ base: "flex", md: "none" }}
+            onClick={onClose}
+          />
+        </Flex>
+        {LinkItems.map((link) => (
+          <NavItem
+            key={link.name}
+            icon={link.icon}
+            url={link.url}
+            isActive={location.pathname === link.url}
+          >
+            {link.name}
+          </NavItem>
+        ))}
+      </Box>
+      {isLoggedIn && (
+        <Box p="4">
+          <Button onClick={handleLogout} w="full" colorScheme="pink">
+            Sign Out
+          </Button>
+        </Box>
+      )}
+    </Flex>
   );
 };
+
 const NavItem = ({ icon, url, children, isActive, ...rest }) => {
   return (
     <Link
@@ -117,8 +136,8 @@ const NavItem = ({ icon, url, children, isActive, ...rest }) => {
         role="group"
         cursor="pointer"
         _hover={{ bg: "pink.500", color: "white" }}
-        bg={isActive ? "pink.500" : "transparent"} // Set background color for active link
-        color={isActive ? "white" : "inherit"} // Set text color for active link
+        bg={isActive ? "pink.500" : "transparent"}
+        color={isActive ? "white" : "inherit"}
         {...rest}
       >
         {icon && (
@@ -134,6 +153,7 @@ const NavItem = ({ icon, url, children, isActive, ...rest }) => {
     </Link>
   );
 };
+
 const MobileNav = ({ onOpen, ...rest }) => {
   return (
     <Flex
@@ -159,4 +179,5 @@ const MobileNav = ({ onOpen, ...rest }) => {
     </Flex>
   );
 };
+
 export default SimpleSidebar;
