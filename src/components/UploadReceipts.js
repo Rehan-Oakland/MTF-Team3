@@ -17,6 +17,7 @@ export default function UploadReceipt() {
   const [dateOfReceipt, setDateOfReceipt] = useState("");
   const [amount, setAmount] = useState("");
   const [projectCode, setProjectCode] = useState("");
+  const [merchant, setMerchant] = useState("");
   const [school, setSchool] = useState("");
   const [country, setCountry] = useState("");
   const BASE_URL = "your_base_url"; // Define your BASE_URL
@@ -79,6 +80,15 @@ export default function UploadReceipt() {
             placeholder="Enter Project Code"
             value={projectCode}
             onChange={(e) => setProjectCode(e.target.value)}
+          />
+        </FormControl>
+
+        <FormControl isRequired>
+          <FormLabel>Merchant</FormLabel>
+          <Input
+            placeholder="Enter Merchant"
+            value={merchant}
+            onChange={(e) => setMerchant(e.target.value)}
           />
         </FormControl>
 
