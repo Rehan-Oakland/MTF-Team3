@@ -11,35 +11,54 @@ import {
   Stack,
   Heading,
 } from "@chakra-ui/react";
-import { MdUpload } from "react-icons/md";
+import { ToastContainer, toast } from "react-toastify";
+import 'react-toastify/dist/ReactToastify.css';
 
 export default function UploadReceipt() {
   const [dateOfReceipt, setDateOfReceipt] = useState("");
   const [amount, setAmount] = useState("");
   const [projectCode, setProjectCode] = useState("");
+  const [merchant, setMerchant] = useState("");
   const [school, setSchool] = useState("");
   const [country, setCountry] = useState("");
+  const [file, setFile] = useState(null);
   const BASE_URL = "your_base_url"; // Define your BASE_URL
 
+  const handleFileChange = (event) => {
+    setFile(event.target.files[0]);
+  };
+
   const Upload = async () => {
+    if (!file) {
+      toast.error("Please upload a file.");
+      return;
+    }
+
     try {
-      const response = await fetch(`${BASE_URL}/login`, {
+      const formData = new FormData();
+      formData.append("dateOfReceipt", dateOfReceipt);
+      formData.append("amount", amount);
+      formData.append("projectCode", projectCode);
+      formData.append("merchant", merchant);
+      formData.append("school", school);
+      formData.append("country", country);
+      formData.append("file", file);
+
+      const response = await fetch(`${BASE_URL}/upload`, {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          dateOfReceipt,
-          amount,
-          projectCode,
-          school,
-          country,
-        }),
+        body: formData,
       });
-      const data = await response.json();
-      // Handle the response data here, if needed
-      console.log(data);
+
+      if (response.ok) {
+        const data = await response.json();
+        toast.success("Receipt uploaded successfully!");
+        console.log(data);
+      } else {
+        toast.error("Error uploading receipt.");
+      }
     } catch (error) {
+      toast.error("Error uploading receipt.");
       console.error("Error:", error);
-      // Handle the error here
     }
   };
 
@@ -63,7 +82,7 @@ export default function UploadReceipt() {
         </FormControl>
 
         <FormControl isRequired>
-          <FormLabel>Amount</FormLabel>
+          <FormLabel marginTop={2}>Amount</FormLabel>
           <NumberInput
             precision={2}
             value={amount}
@@ -74,7 +93,7 @@ export default function UploadReceipt() {
         </FormControl>
 
         <FormControl isRequired>
-          <FormLabel>Project Code</FormLabel>
+          <FormLabel marginTop={2}>Project Code</FormLabel>
           <Input
             placeholder="Enter Project Code"
             value={projectCode}
@@ -83,7 +102,16 @@ export default function UploadReceipt() {
         </FormControl>
 
         <FormControl isRequired>
-          <FormLabel>School</FormLabel>
+          <FormLabel marginTop={2}>Merchant</FormLabel>
+          <Input
+            placeholder="Enter Merchant"
+            value={merchant}
+            onChange={(e) => setMerchant(e.target.value)}
+          />
+        </FormControl>
+
+        <FormControl isRequired>
+          <FormLabel marginTop={2}>School</FormLabel>
           <Input
             placeholder="Enter School Name"
             value={school}
@@ -92,7 +120,7 @@ export default function UploadReceipt() {
         </FormControl>
 
         <FormControl isRequired>
-          <FormLabel>Country</FormLabel>
+          <FormLabel marginTop={2}>Country</FormLabel>
           <Select
             placeholder="Select country"
             value={country}
@@ -103,14 +131,21 @@ export default function UploadReceipt() {
           </Select>
         </FormControl>
 
+        <FormControl isRequired>
+          <FormLabel marginTop={2}>Upload File (JPEG or PDF)</FormLabel>
+          <Input
+            type="file"
+            accept=".jpeg, .jpg, .png, .pdf"
+            onChange={handleFileChange}
+          />
+        </FormControl>
+
         <Stack spacing={4} direction="row" align="center" mt="4">
-          <Button rightIcon={<MdUpload />} colorScheme="pink" size="md">
-            Upload
-          </Button>
           <Button colorScheme="pink" size="md" onClick={Upload}>
             Submit
           </Button>
         </Stack>
+        <ToastContainer />
       </Box>
     </Box>
   );

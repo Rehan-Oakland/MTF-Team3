@@ -57,6 +57,7 @@ function RejectedReceipt() {
       if (user?.admin && user?.email) {
         return user.email;
       }
+      toast("User is not admin");
       return null; // Handle cases where user data is missing
     } catch (error) {
       console.error("Error retrieving user email from local storage:", error);

@@ -1,18 +1,15 @@
-import React from "react";
-import { Navigate, useLocation } from "react-router-dom";
+import React, { useContext } from "react";
+import { Navigate, Route } from "react-router-dom";
+import { AuthContext } from "./AuthContext";
 
-const PrivateRoute = ({ children, allowedRoles = [] }) => {
-  const location = useLocation();
+const PrivateRoute = ({ element, ...rest }) => {
+  const { isLoggedIn } = useContext(AuthContext);
 
-  // Simulate authentication check (replace with your logic)
-  const storedUser = localStorage.getItem("user");
-
-  if (!storedUser) {
-    // Redirect to a specific unauthorized page
-    return <Navigate to="/" replace state={{ from: location }} />;
-  }
-
-  return children;
+  return isLoggedIn ? (
+    <Route {...rest} element={element} />
+  ) : (
+    <Navigate to="/" />
+  );
 };
 
 export default PrivateRoute;
