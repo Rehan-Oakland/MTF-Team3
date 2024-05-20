@@ -42,7 +42,7 @@ function LoginPage() {
       login(data);
 
       if (data.admin) {
-        navigate("/outstandingreceipt");
+        navigate("/rejected");
       } else {
         navigate("/upload"); // Redirect to home page after successful login
       }

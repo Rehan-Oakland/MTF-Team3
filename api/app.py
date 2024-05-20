@@ -7,7 +7,8 @@ from flask_sqlalchemy import SQLAlchemy
 from flask_login import UserMixin, LoginManager, login_user, login_required, current_user, logout_user
 from werkzeug.security import generate_password_hash, check_password_hash
 from werkzeug.utils import secure_filename
-
+from inference import extraction
+import pandas as pd
 # Load environment variables from .env file
 load_dotenv()
 
@@ -19,7 +20,7 @@ cors = CORS(app)
 app.config['SQLALCHEMY_DATABASE_URI'] = os.getenv("SQLALCHEMY_DATABASE_URI")
 app.config['SECRET_KEY'] = os.getenv("SECRET_KEY")
 app.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER  # Folder to store uploaded receipts
-app.config['MAX_CONTENT_LENGTH'] = 16 * 1024 * 1024  # Limit upload size to 16MB
+app.config['TIMEOUT'] = 60000
 
 # Ensure the upload folder exists
 os.makedirs(app.config['UPLOAD_FOLDER'], exist_ok=True)
@@ -43,7 +44,7 @@ def unauthorized():
 
 # Define User model
 class User(db.Model, UserMixin):
-    __tablename__ = 'user'  # Use lowercase 'user' for consistency
+    __tablename__ = 'User'  # Use lowercase 'user' for consistency
 
     id = db.Column(db.Integer, primary_key=True)
     username = db.Column(db.String(120), unique=True, nullable=False)
@@ -58,13 +59,14 @@ class Receipt(db.Model):
 
     id = db.Column(db.Integer, primary_key=True)
     date_added = db.Column(db.DateTime, default=datetime.now())
-    user_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)  # Reference 'user' table
+    user_id = db.Column(db.Integer, db.ForeignKey('User.id'), nullable=False)  # Reference 'user' table
     country = db.Column(db.String(50))
     project_code = db.Column(db.String(50))
     school_name = db.Column(db.String(100))
     merchant_name = db.Column(db.String(100))
     receipt_date = db.Column(db.Date)
     receipt_url = db.Column(db.String(255))
+    rejected_url = db.Column(db.String(255))
     status = db.Column(db.String(20), default='Pending', nullable=False)
     reason = db.Column(db.Text, nullable=True)
 
@@ -85,13 +87,14 @@ class Receipt(db.Model):
             "receipt_url": self.receipt_url,
             "receipt_date": self.receipt_date,
             "status": self.status,
+            "rejected_url" : self.rejected_url
         }
 
 class Purchase(db.Model):
     __tablename__ = 'purchase'  # Explicitly specify table name
 
     id = db.Column(db.Integer, primary_key=True)
-    user_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)  # Reference 'user' table
+    user_id = db.Column(db.Integer, db.ForeignKey('User.id'), nullable=False)  # Reference 'user' table
     project_code = db.Column(db.String(50), nullable=False)
     school_name = db.Column(db.String(100), nullable=False)
     receipt_id = db.Column(db.Integer, db.ForeignKey('receipt.id'), nullable=False)
@@ -100,7 +103,7 @@ class Purchase(db.Model):
     quantity = db.Column(db.Integer, nullable=False)
     total_cost_bdt = db.Column(db.Integer, nullable=False)
     unit_price_bdt = db.Column(db.Integer, nullable=False)
-    date_purchased = db.Column(db.Date, nullable=False, default=datetime.utcnow)
+    date_purchased = db.Column(db.Date, nullable=False, default=datetime.now())
 
     def __repr__(self):
         return f'<Purchase {self.id}>'
@@ -150,46 +153,81 @@ def login():
     if user and check_password_hash(user.password, json_data['password']):
         login_user(user)
         print("User logged in:", user.username)  # Debug statement
-        return jsonify({"message": "Logged in successfully", "admin": user.admin})
+        return jsonify({"message": "Logged in successfully", "admin": user.admin, "email": user.username})
     print("Login failed for user:", json_data['username'])  # Debug statement
     return jsonify({"message": "Invalid username or password"}), 401
 
 @app.route('/logout')
-@login_required
 def logout():
     logout_user()
     return jsonify({"message": "Logged out successfully"})
 
-@app.route('/upload_receipt', methods=['POST'])
-@login_required
-def upload_receipt():
-    if 'file' not in request.files:
-        return jsonify({"message": "No file part"}), 400
-    file = request.files['file']
-    if file.filename == '':
-        return jsonify({"message": "No selected file"}), 400
-    if file:
-        filename = secure_filename(file.filename)
-        filepath = os.path.join(app.config['UPLOAD_FOLDER'], filename)
-        file.save(filepath)
+
+@app.route('/upload', methods=['POST'])
+def upload():
+
+    try:
         
-        # extraction_result = extraction(filepath)
+        file = request.files['file']
+        if file.filename == '':
+            return jsonify({"message": "No selected file"}), 400
+        filename = secure_filename(file.filename)
+        filepath = os.path.join(r"C:/Users/RehanHussain/OneDrive - Oakland Group/Documents/MTF/MTF-Team3/public/img", filename)
+        file.save(filepath)
+        extraction_result = extraction(filepath)
+        status = extraction_result.get("validation") 
+        user = User.query.filter_by(username=request.form.get('email')).first()        
+
+
+        receipt_date = datetime.strptime(request.form.get('receipt_date'), "%Y-%M-%d")
+
+        # Cut down file path so its on from /img
+        # print()
+
 
         new_receipt = Receipt(
-            user_id=current_user.id,
+            user_id=user.id,
             country=request.form.get('country'),
             project_code=request.form.get('project_code'),
             school_name=request.form.get('school_name'),
             merchant_name=request.form.get('merchant_name'),
-            receipt_date=datetime.strptime(request.form.get('receipt_date'), '%Y-%m-%d'),
+            receipt_date=receipt_date,
             receipt_url=filepath,
-            # status=extraction_result.get('status', 'Pending'),
-            # reason=extraction_result.get('reason')
+            status=status,
+            reason=extraction_result.get("reason"),
+            rejected_url = extraction_result.get("file")
         )
         db.session.add(new_receipt)
         db.session.commit()
-        
-        return jsonify({"message": "Receipt uploaded successfully", "filename": filename}), 201
+
+
+        if status == "Accepted":
+            df = extraction_result.get("purchase_df")
+            # Add each row to the database
+            for _, row in df.iterrows():
+                new_purchase = Purchase(
+                    user_id=user.id,  # Replace with appropriate user_id
+                    project_code=request.form.get('project_code'),  # Replace with appropriate project_code
+                    school_name=request.form.get('school_name'),  # Replace with appropriate school_name
+                    receipt_id=new_receipt.id,  # Replace with appropriate receipt_id
+                    item=row['item'],
+                    unit=row['unit'],
+                    quantity=row['quantity'],
+                    total_cost_bdt=row['amount'],
+                    unit_price_bdt=row['price'],
+                    date_purchased=receipt_date # Replace with appropriate date if necessary
+                )
+                db.session.add(new_purchase)
+
+            # Commit the session to save the records
+            db.session.commit()
+            return jsonify({"message": "Receipt uploaded and validated succesfully"}), 200
+        return jsonify({"message": "failed to validate receipt please check in rejected receipts to see why"}), 200
+    except Exception as e:
+        print(f"Error: {e}")
+        return jsonify({"message": "Internal server error"}), 500
+    
+
 
 @app.route('/get_rejected_receipts', methods=['GET'])
 def get_rejected_receipts():
@@ -259,7 +297,6 @@ def check_session():
     return jsonify({"message": f"User {current_user.username} is logged in"})
 
 @app.route('/receipts', methods=['GET'])
-@login_required
 def get_receipts():
     receipts = Receipt.query.filter_by(user_id=current_user.id).all()
     return jsonify([receipt.to_dict() for receipt in receipts])

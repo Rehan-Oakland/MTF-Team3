@@ -23,6 +23,7 @@ import {
   FormHelperText,
   ModalFooter,
   Textarea,
+  Text,
 } from "@chakra-ui/react";
 import { toast } from "react-toastify";
 
@@ -48,7 +49,7 @@ function RejectedReceipt() {
     }
 
     fetchRejectedReceipts();
-  }, [isReceiptUpdated]);
+  }, []);
 
   // Simulated API response data
   const getUserEmail = () => {
@@ -125,43 +126,71 @@ function RejectedReceipt() {
 
   return (
     <>
-      <TableContainer w="80%" justify="center" mx="auto">
-        <Table variant="simple">
-          <Thead>
-            <Tr>
-              <Th>Receipt Date</Th>
-              <Th>Country</Th>
-              <Th>Project Code</Th>
-              <Th>School Name</Th>
-              <Th>Merchant Name</Th>
-              <Th>Receipt</Th>
-              <Th>Reason</Th>
-            </Tr>
-          </Thead>
-          <Tbody>
-            {receipts.map((receipt) => (
-              <Tr key={receipt.id}>
-                <Td>{receipt.receipt_date}</Td>
-                <Td>{receipt.country}</Td>
-                <Td>{receipt.project_code}</Td>
-                <Td>{receipt.school_name}</Td>
-                <Td>{receipt.merchant_name}</Td>
-                <Td>
-                  <Button
-                    onClick={(event) => {
-                      handleViewReceipt(receipt);
-                      event.stopPropagation();
-                    }}
-                  >
-                    View Receipt
-                  </Button>
-                </Td>
-                <Td>{receipt.reason}</Td>
-              </Tr>
-            ))}
-          </Tbody>
-        </Table>
-      </TableContainer>
+      <Text
+        fontSize="48px"
+        fontWeight="bold"
+        textAlign="center"
+        fontFamily="'Epilogue', sans-serif"
+        mb={4}
+      >
+        Rejected Receipts
+      </Text>
+      <Box display="flex" flexWrap="wrap" justifyContent="center">
+        {receipts.map((receipt) => (
+          <Box
+            key={receipt.id}
+            borderWidth="1px"
+            borderRadius="lg"
+            overflow="hidden"
+            m={4}
+            width="300px"
+          >
+            <Image
+              src={receipt.receipt_url}
+              alt="Receipt"
+              boxSize="300px"
+              objectFit="cover"
+              cursor="pointer"
+              onClick={() => handleViewReceipt(receipt)}
+            />
+            <Box p={4}>
+              <Text fontSize="md" mb={2}>
+                Country: {receipt.country}
+              </Text>
+              <Text fontSize="md" mb={2}>
+                Project Code: {receipt.project_code}
+              </Text>
+              <Text fontSize="md" mb={2}>
+                School Name: {receipt.school_name}
+              </Text>
+              <Text fontSize="md" mb={2}>
+                Merchant Name: {receipt.merchant_name}
+              </Text>
+              <Text fontSize="md" mb={2}>
+                Receipt Date: {receipt.receipt_date}
+              </Text>
+              <Text fontSize="md" mb={2}>
+                Status:{" "}
+                <span
+                  style={{
+                    color: receipt.status === "Rejected" ? "red" : "inherit",
+                  }}
+                >
+                  {receipt.status}
+                </span>
+              </Text>
+              {receipt.status === "Rejected" && (
+                <Text fontSize="md" mb={2} color="red">
+                  Reason: {receipt.reason}
+                </Text>
+              )}
+              <Button onClick={() => handleViewReceipt(receipt)}>
+                View Receipt
+              </Button>
+            </Box>
+          </Box>
+        ))}
+      </Box>
       <Modal isOpen={isOpen} onClose={onClose} isCentered>
         <ModalOverlay />
         <ModalContent>
@@ -173,30 +202,51 @@ function RejectedReceipt() {
             }}
           />
           <ModalBody>
-            <Box mb={3}>
-              {selectedReceipt?.receipt_url && (
-                <Image
-                  src={selectedReceipt.receipt_url}
-                  alt="Receipt"
-                  boxSize="300px"
-                />
+            <Image
+              src={selectedReceipt?.receipt_url}
+              alt="Receipt"
+              width="100%"
+              cursor="pointer"
+              onClick={() =>
+                window.open(selectedReceipt?.receipt_url, "_blank")
+              }
+            />
+            <Box mt={3}>
+              <Text fontSize="md" mb={2}>
+                Country: {selectedReceipt?.country}
+              </Text>
+              <Text fontSize="md" mb={2}>
+                Project Code: {selectedReceipt?.project_code}
+              </Text>
+              <Text fontSize="md" mb={2}>
+                School Name: {selectedReceipt?.school_name}
+              </Text>
+              <Text fontSize="md" mb={2}>
+                Merchant Name: {selectedReceipt?.merchant_name}
+              </Text>
+              <Text fontSize="md" mb={2}>
+                Receipt Date: {selectedReceipt?.receipt_date}
+              </Text>
+              <Text fontSize="md" mb={2}>
+                Status:{" "}
+                <span
+                  style={{
+                    color:
+                      selectedReceipt?.status === "Rejected"
+                        ? "red"
+                        : "inherit",
+                  }}
+                >
+                  {selectedReceipt?.status}
+                </span>
+              </Text>
+              {selectedReceipt?.status === "Rejected" && (
+                <Text fontSize="md" mb={2} color="red">
+                  Reason: {selectedReceipt?.reason}
+                </Text>
               )}
             </Box>
-            {selectedReceipt && (
-              <>
-                <Box mb={3}>
-                  <p>Country: {selectedReceipt.country}</p>
-                  <p>Project Code: {selectedReceipt.project_code}</p>
-                  <p>School Name: {selectedReceipt.school_name}</p>
-                  <p>Merchant Name: {selectedReceipt.merchant_name}</p>
-                  <p>Receipt Date: {selectedReceipt.receipt_date}</p>
-                  <p>Reason: {selectedReceipt.reason}</p>
-                </Box>
-                {/* ... other relevant details from the receipt data */}
-              </>
-            )}
-            {/* Reason box and submit button for rejection */}
-            <FormControl>
+            <FormControl mt={3}>
               <FormLabel htmlFor="reason">Reason (required):</FormLabel>
               <Textarea
                 id="reason"
