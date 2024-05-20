@@ -17,6 +17,51 @@ def get_column_cell(extracted_table: ExtractedTable, top: int = 5) -> list:
   return table_df.loc[:top, "column"].tolist()
 
 
+def is_duplicates(row1, row2) -> bool:
+  overlap = max(0, (min(row1["x2"], row2["x2"]) - max(row1["x1"], row2["x1"])))
+  min_wt = min(row1["wt"], row2["wt"])
+  if min_wt < 1:
+    return False
+  return (overlap/min_wt) > 0.45
+
+
+def drop_duplicates(dx:pd.DataFrame, dy:pd.DataFrame) -> tuple:
+  if dx.shape[0] > 1:
+    row1 = dx.loc[0, :].to_dict()
+    row2 = dx.loc[1, :].to_dict()
+
+    if is_duplicates(row1, row2):
+      dy = pd.concat([dy, dx.loc[0, :].to_frame().T], axis = 0, ignore_index = True)
+      return dx.iloc[2:, :], dy
+    else:
+      dy = pd.concat([dy, dx.loc[0, :].to_frame().T], axis = 0, ignore_index = True)
+      return dx.iloc[1:, :], dy
+  else:
+    dy = pd.concat([dy, dx.loc[0, :].to_frame().T], axis = 0, ignore_index = True)
+    return dx.iloc[1:, :], dy
+
+
+def get_table_column(extracted_table) -> list:
+  table_rows = list(iter(extracted_table.content.values()))
+  table_rows = np.array(table_rows).flatten().tolist()
+  table_rows = [[pred, pred.bbox.x1, pred.bbox.y1, pred.bbox.x2, pred.bbox.y2] for pred in table_rows]
+  dx = pd.DataFrame(data = table_rows, columns = ["cell", "x1", "y1", "x2", "y2"])
+  dx["ht"] = dx["y2"] - dx["y1"]
+  dx["wt"] = dx["x2"] - dx["x1"]
+  mx_ht = dx.ht.max()
+  dx = dx.loc[dx["ht"] > (0.7 * mx_ht), :]
+  dx.sort_values(by = ["ht"], ascending = False, inplace = True)
+  dx.reset_index(drop = True, inplace = True)
+  
+  dy = pd.DataFrame()
+  while not dx.empty:
+    dx.sort_values(by = ["x1"], ascending = True, inplace = True)
+    dx.reset_index(drop = True, inplace = True)
+    dx, dy = drop_duplicates(dx, dy)
+  
+  return dy.cell.to_list()
+
+
 def convert_word_bbox(paddle_bbox: list) -> list:
   bbox_array = np.array(paddle_bbox)
   mini = np.min(bbox_array, axis = 0).reshape(1, 2)
@@ -69,6 +114,41 @@ def get_column_text(column_bbox: list, extraction: list) -> pd.DataFrame:
   return pd.DataFrame(data = data, columns = config.item_column)
 
 
+
+def korim_item_overlap(row1, row2) -> bool:
+  overlap = max(0, (min(row1["y1"], row2["y1"]) - max(row1["y0"], row2["y0"])))
+  min_ht = min(row1["ht"], row2["ht"])
+  return (overlap/min_ht) >= 0.40
+
+def patch_korim_description(dx):
+  data = dx.copy()
+  data["paid_check"] = data["word"].apply(lambda x: ratio(x.lower(), "paid") >= 0.70)
+  data = data.loc[~data["paid_check"], :]
+  data.drop("paid_check", axis = 1, inplace = True)
+  data.sort_values(by = ["y0"], ascending = True, inplace = True)
+  data.reset_index(drop = True, inplace = True)
+  data["ht"] = data["y1"] - data["y0"]
+  check = []
+  size = data.shape[0]
+  for i in range(size - 1):
+    row1 = data.iloc[i, :].to_dict()
+    row2 = data.iloc[i + 1, :].to_dict()
+    check.append(korim_item_overlap(row1, row2))
+  check.append(False)
+  data["bool"] = check
+  index = data.loc[data["bool"]].index.tolist()
+  for i in index:
+    if data.loc[i, "word"] < data.loc[i + 1, "word"]:
+      data.loc[i, "word"] = data.loc[i, "word"] + " " + data.loc[i + 1, "word"]
+      data.drop(i + 1, axis = 0, inplace = True)
+    else:
+      data.loc[i + 1, "word"] = data.loc[i + 1, "word"] + " " + data.loc[i, "word"]
+      data.drop(i, axis = 0, inplace = True)
+    data.drop(["ht", "bool"], axis = 1, inplace = True)
+    data.sort_values(by = ["y0"], ascending = True, inplace = True)
+    data.reset_index(drop = True, inplace = True)
+  return data
+
 def deduplicate(dx:pd.DataFrame, dy:pd.DataFrame) -> tuple:
 
   if dx.shape[0] > 1:
@@ -91,6 +171,31 @@ def deduplicate(dx:pd.DataFrame, dy:pd.DataFrame) -> tuple:
     dy = pd.concat([dy, dx.loc[0, :].to_frame().T], axis = 0, ignore_index = True)
     return dx.iloc[1:, :], dy
   
+def sanitize_digits(data: pd.DataFrame, key_account: str) -> pd.DataFrame:
+  translation_table = str.maketrans(config.swap_digits)
+  for header in config.table_headers.get(key_account)[2:]:
+    data[header] = data[header].str.translate(translation_table).str.replace(r"\W", "", regex = True)
+  return data
+
+
+def which_account(title: str) -> str:
+  validator = lambda account, word: ratio(account, word)
+  title = title.split("\n")
+  accounts = dict()
+  for account in ["korim enterprise", "badsha enterprise", "sayma general store"]:
+    key = account.split()[0]
+    accounts[key] = max([validator(account, word.lower()) for word in title])
+  key_account = max(accounts, key = accounts.get)
+  if accounts.get(key_account) >= 0.7:
+    return key_account
+  else:
+    return None
+
+
+def construct_excel(data: pd.DataFrame) -> None:
+  pass
+
+
 
 def similarity_ratio(extracted_item: str, available_items: list):
     receipt_items = {}

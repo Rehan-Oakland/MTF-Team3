@@ -19,11 +19,11 @@ class ColumnCell():
       
     def cell(self, key) -> BBox:
       
-      columns = utils.get_column_cell(self.table)
+      columns = utils.get_table_column(self.table)
       
       account_table = {}
       
-      for header, col in zip(config.table_headers["sayma"], columns):
+      for header, col in zip(config.table_headers["badsha"], columns):
         account_table[header] = col
       
       return account_table.get(key)
@@ -39,7 +39,7 @@ class ColumnCell():
       for pred in self.extraction:
         bbox = utils.convert_word_bbox(pred[0])
         word = pred[1][0]
-        condition = [ratio(word.lower(), w) >= 0.8 for w in ["paid", "due", "total"]]
+        condition = [ratio(word.lower(), w) >= 0.8 for w in ["total amount", "due", "advance", "in word"]]
         if any(condition) and bbox[0][0] > x_threshold and bbox[0][1] > y_threshold:
            item = np.array(bbox).flatten().tolist()
            item.append(word)
@@ -83,7 +83,7 @@ class ColumnCell():
       return column_df
     
     def left(self) -> pd.DataFrame:
-      head = config.column_mapping["sayma"][self.header][0]
+      head = config.column_mapping["badsha"][self.header][0]
 
       column_cell = self.cell(head)
       column_df = utils.get_column_text(column_cell.bbox, self.extraction)
@@ -103,7 +103,7 @@ class ColumnCell():
       return column_df
     
     def right(self) -> pd.DataFrame:
-      head = config.column_mapping["sayma"][self.header][1]
+      head = config.column_mapping["badsha"][self.header][1]
 
       column_cell = self.cell(head)
       column_df = utils.get_column_text(column_cell.bbox, self.extraction)
@@ -122,7 +122,6 @@ class ColumnCell():
       
       return column_df
     
-
 
 def get_column(table: ExtractedTable, extraction: list,
                img: np.ndarray, header: str) -> pd.DataFrame:
@@ -253,7 +252,7 @@ def get_column(table: ExtractedTable, extraction: list,
 
 
 def extract(table: ExtractedTable, extraction: list, img: np.ndarray):
-  headers = config.table_headers.get("sayma")
+  headers = config.table_headers.get("badsha")
   account_df = pd.DataFrame()
   for header in headers[1:]:
     col_df = get_column(table, extraction, img, header)
@@ -261,5 +260,5 @@ def extract(table: ExtractedTable, extraction: list, img: np.ndarray):
   account_df.reset_index(drop = False, inplace = True)
   account_df.columns = headers
   account_df["sl"] += 1
-  account_df = utils.sanitize_digits(account_df, key_account = "sayma")
+  account_df = utils.sanitize_digits(account_df, key_account = "badsha")
   return account_df.fillna("")
