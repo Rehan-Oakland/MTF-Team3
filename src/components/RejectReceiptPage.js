@@ -1,12 +1,5 @@
 import React, { useState, useEffect } from "react";
 import {
-  Table,
-  Thead,
-  Tbody,
-  Tr,
-  Th,
-  Td,
-  TableContainer,
   Box,
   Image,
   Modal,
@@ -23,7 +16,9 @@ import {
   FormHelperText,
   ModalFooter,
   Textarea,
+  Flex,
   Text,
+  VStack,
 } from "@chakra-ui/react";
 import { toast } from "react-toastify";
 
@@ -49,17 +44,15 @@ function RejectedReceipt() {
     }
 
     fetchRejectedReceipts();
-  }, []);
+  }, [isReceiptUpdated]);
 
-  // Simulated API response data
   const getUserEmail = () => {
     try {
       const user = JSON.parse(localStorage.getItem("user"));
       if (user?.admin && user?.email) {
         return user.email;
       }
-      toast("User is not admin");
-      return null; // Handle cases where user data is missing
+      return null;
     } catch (error) {
       console.error("Error retrieving user email from local storage:", error);
       return null;
@@ -69,20 +62,19 @@ function RejectedReceipt() {
   const handleViewReceipt = (receipt) => {
     setSelectedReceipt(receipt);
     onOpen();
-    setConfirmationMode(false); // Set confirmation mode to false for viewing
-    setReason(""); // Reset reason when opening in view mode
+    setConfirmationMode(false);
+    setReason("");
   };
+
   const handleConfirmationAction = async (action) => {
-    // Handle actions (Accept/Reject) after confirmation
-    console.log(action);
     if (action === "Accepted" || action === "Rejected") {
       const userEmail = getUserEmail();
       if (!userEmail) {
         console.error("Failed to retrieve user email for API call.");
-        return; // Handle cases where user email is unavailable
+        return;
       }
 
-      await handleUpdateStatus(action, userEmail); // Use await for asynchronous API call
+      await handleUpdateStatus(action, userEmail);
       setIsReceiptUpdated(true);
       onClose();
     } else {
@@ -91,7 +83,7 @@ function RejectedReceipt() {
   };
 
   const handleUpdateStatus = async (action, userEmail) => {
-    if (!selectedReceipt) return; // Handle potential errors
+    if (!selectedReceipt) return;
 
     try {
       const response = await fetch(`${BASE_URL}/update_receipt_status`, {
@@ -111,11 +103,10 @@ function RejectedReceipt() {
 
       console.log(`Receipt ${action}ed:`, selectedReceipt);
       toast(`Updated ${selectedReceipt.id} ${action}`);
-      onClose(); // Close modal after successful update
-      setReason(""); // Reset rejection reason after successful submission
+      onClose();
+      setReason("");
     } catch (error) {
       console.error("Error updating receipt status:", error);
-      // Handle errors appropriately (e.g., display error message)
     }
   };
 
@@ -126,69 +117,42 @@ function RejectedReceipt() {
 
   return (
     <>
-      <Text
-        fontSize="48px"
-        fontWeight="bold"
-        textAlign="center"
-        fontFamily="'Epilogue', sans-serif"
-        mb={4}
-      >
-        Rejected Receipts
-      </Text>
-      <Box display="flex" flexWrap="wrap" justifyContent="center">
+      <Box w="80%" mx="auto">
         {receipts.map((receipt) => (
-          <Box
+          <Flex
             key={receipt.id}
-            borderWidth="1px"
+            p={4}
+            borderWidth={1}
             borderRadius="lg"
-            overflow="hidden"
-            m={4}
-            width="300px"
+            mb={4}
+            alignItems="center"
+            justifyContent="space-between"
           >
             <Image
               src={receipt.receipt_url}
               alt="Receipt"
-              boxSize="300px"
+              boxSize="150px"
               objectFit="cover"
               cursor="pointer"
               onClick={() => handleViewReceipt(receipt)}
             />
-            <Box p={4}>
-              <Text fontSize="md" mb={2}>
-                Country: {receipt.country}
-              </Text>
-              <Text fontSize="md" mb={2}>
-                Project Code: {receipt.project_code}
-              </Text>
-              <Text fontSize="md" mb={2}>
-                School Name: {receipt.school_name}
-              </Text>
-              <Text fontSize="md" mb={2}>
-                Merchant Name: {receipt.merchant_name}
-              </Text>
-              <Text fontSize="md" mb={2}>
-                Receipt Date: {receipt.receipt_date}
-              </Text>
-              <Text fontSize="md" mb={2}>
-                Status:{" "}
-                <span
-                  style={{
-                    color: receipt.status === "Rejected" ? "red" : "inherit",
-                  }}
-                >
-                  {receipt.status}
-                </span>
-              </Text>
-              {receipt.status === "Rejected" && (
-                <Text fontSize="md" mb={2} color="red">
-                  Reason: {receipt.reason}
-                </Text>
-              )}
-              <Button onClick={() => handleViewReceipt(receipt)}>
-                View Receipt
-              </Button>
-            </Box>
-          </Box>
+            <VStack align="start" spacing={2} ml={4}>
+              <Text><strong>Receipt Date:</strong> {receipt.receipt_date}</Text>
+              <Text><strong>Country:</strong> {receipt.country}</Text>
+              <Text><strong>Project Code:</strong> {receipt.project_code}</Text>
+              <Text><strong>School Name:</strong> {receipt.school_name}</Text>
+              <Text><strong>Merchant Name:</strong> {receipt.merchant_name}</Text>
+              <Text color="red"><strong>Reason:</strong> {receipt.reason}</Text>
+            </VStack>
+            <Button
+              onClick={(event) => {
+                handleViewReceipt(receipt);
+                event.stopPropagation();
+              }}
+            >
+              View Receipt
+            </Button>
+          </Flex>
         ))}
       </Box>
       <Modal isOpen={isOpen} onClose={onClose} isCentered>
@@ -202,51 +166,28 @@ function RejectedReceipt() {
             }}
           />
           <ModalBody>
-            <Image
-              src={selectedReceipt?.receipt_url}
-              alt="Receipt"
-              width="100%"
-              cursor="pointer"
-              onClick={() =>
-                window.open(selectedReceipt?.receipt_url, "_blank")
-              }
-            />
-            <Box mt={3}>
-              <Text fontSize="md" mb={2}>
-                Country: {selectedReceipt?.country}
-              </Text>
-              <Text fontSize="md" mb={2}>
-                Project Code: {selectedReceipt?.project_code}
-              </Text>
-              <Text fontSize="md" mb={2}>
-                School Name: {selectedReceipt?.school_name}
-              </Text>
-              <Text fontSize="md" mb={2}>
-                Merchant Name: {selectedReceipt?.merchant_name}
-              </Text>
-              <Text fontSize="md" mb={2}>
-                Receipt Date: {selectedReceipt?.receipt_date}
-              </Text>
-              <Text fontSize="md" mb={2}>
-                Status:{" "}
-                <span
-                  style={{
-                    color:
-                      selectedReceipt?.status === "Rejected"
-                        ? "red"
-                        : "inherit",
-                  }}
-                >
-                  {selectedReceipt?.status}
-                </span>
-              </Text>
-              {selectedReceipt?.status === "Rejected" && (
-                <Text fontSize="md" mb={2} color="red">
-                  Reason: {selectedReceipt?.reason}
-                </Text>
+            <Box mb={3}>
+              {selectedReceipt?.receipt_url && (
+                <Image
+                  src={selectedReceipt.receipt_url}
+                  alt="Receipt"
+                  boxSize="300px"
+                />
               )}
             </Box>
-            <FormControl mt={3}>
+            {selectedReceipt && (
+              <>
+                <Box mb={3}>
+                  <Text>Country: {selectedReceipt.country}</Text>
+                  <Text>Project Code: {selectedReceipt.project_code}</Text>
+                  <Text>School Name: {selectedReceipt.school_name}</Text>
+                  <Text>Merchant Name: {selectedReceipt.merchant_name}</Text>
+                  <Text>Receipt Date: {selectedReceipt.receipt_date}</Text>
+                  <Text color="red">Reason: {selectedReceipt.reason}</Text>
+                </Box>
+              </>
+            )}
+            <FormControl>
               <FormLabel htmlFor="reason">Reason (required):</FormLabel>
               <Textarea
                 id="reason"
@@ -297,3 +238,4 @@ function RejectedReceipt() {
 }
 
 export default RejectedReceipt;
+

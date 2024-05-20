@@ -24,11 +24,11 @@ function App() {
               <Route exact path="/" element={<LoginPage />} />
               <Route exact path="/register" element={<RegisterPage />} />
               <Route path="/home" element={<HomePage />} />
-              <Route path="/rejected" element={<RejectedReceipt />} />
+              <Route path="/rejectedreceipt" element={<RejectedReceipt />} />
               <Route path="/upload" element={<UploadReceipt />} />
               <Route path="/viewpurchases" element={<ViewPurchasesPage />} />
               {/* <Route
-              path="/outstandingreceipt"
+              path="/rejectedreceipt"
               element={
                 <PrivateRoute>
                   <RejectedReceipt />

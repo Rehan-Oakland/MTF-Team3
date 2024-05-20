@@ -30,7 +30,7 @@ const LinkItems = [
   {
     name: "Rejected Receipts",
     icon: FiAlertTriangle,
-    url: "/rejected",
+    url: "/rejectedreceipt",
   },
   { name: "View Purchase", icon: FiStar, url: "/viewpurchases" },
 ];
