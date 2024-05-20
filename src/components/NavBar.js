@@ -21,9 +21,9 @@ const LinkItems = [
   { name: "Home", icon: FiHome, url: "/" },
   { name: "Upload Receipt", icon: FiTrendingUp, url: "/upload" },
   {
-    name: "Outstanding Receipts",
+    name: "Rejected Receipts",
     icon: FiTrendingUp,
-    url: "/outstandingreceipt",
+    url: "/rejectedreceipt",
   },
   { name: "View Purchase", icon: FiStar, url: "/viewpurchases" },
 ];
