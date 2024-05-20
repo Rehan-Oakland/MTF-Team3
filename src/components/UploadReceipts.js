@@ -12,9 +12,12 @@ import {
   Heading,
 } from "@chakra-ui/react";
 import { ToastContainer, toast } from "react-toastify";
-import 'react-toastify/dist/ReactToastify.css';
+import "react-toastify/dist/ReactToastify.css";
 
-export default function UploadReceipt() {
+const BASE_URL = process.env.REACT_APP_BASE_URL;
+const FETCH_TIMEOUT = 60000; // 60 seconds timeout
+
+function UploadReceipt() {
   const [dateOfReceipt, setDateOfReceipt] = useState("");
   const [amount, setAmount] = useState("");
   const [projectCode, setProjectCode] = useState("");
@@ -22,43 +25,87 @@ export default function UploadReceipt() {
   const [school, setSchool] = useState("");
   const [country, setCountry] = useState("");
   const [file, setFile] = useState(null);
-  const BASE_URL = "your_base_url"; // Define your BASE_URL
+  const [loading, setLoading] = useState(false);
 
   const handleFileChange = (event) => {
     setFile(event.target.files[0]);
   };
 
-  const Upload = async () => {
+  const getUserEmail = () => {
+    try {
+      const user = JSON.parse(localStorage.getItem("user"));
+      if (user?.email) {
+        return user.email;
+      }
+      toast.error("User is not logged in");
+      return null; // Handle cases where user data is missing
+    } catch (error) {
+      console.error("Error retrieving user email from local storage:", error);
+      return null;
+    }
+  };
+
+  const handleSubmit = async (event) => {
+    event.preventDefault(); // Prevent default form submission
+
     if (!file) {
       toast.error("Please upload a file.");
       return;
     }
 
-    try {
-      const formData = new FormData();
-      formData.append("dateOfReceipt", dateOfReceipt);
-      formData.append("amount", amount);
-      formData.append("projectCode", projectCode);
-      formData.append("merchant", merchant);
-      formData.append("school", school);
-      formData.append("country", country);
-      formData.append("file", file);
+    const userEmail = getUserEmail();
+    if (!userEmail) return;
+    debugger;
 
+    setLoading(true);
+
+    const formData = new FormData();
+    formData.append("receipt_date", dateOfReceipt);
+    formData.append("amount", amount);
+    formData.append("project_code", projectCode);
+    formData.append("merchant_name", merchant);
+    formData.append("school_name", school);
+    formData.append("country", country);
+    formData.append("file", file);
+    formData.append("email", userEmail);
+
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), FETCH_TIMEOUT);
+    debugger;
+
+    try {
       const response = await fetch(`${BASE_URL}/upload`, {
         method: "POST",
         body: formData,
+        signal: controller.signal,
       });
 
-      if (response.ok) {
-        const data = await response.json();
-        toast.success("Receipt uploaded successfully!");
-        console.log(data);
-      } else {
-        toast.error("Error uploading receipt.");
+      clearTimeout(timeoutId);
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.message || "Error uploading file");
       }
+
+      if (response.status === 201) {
+        toast.error(data.message);
+      } else {
+        toast.success(data.message);
+      }
+
+      console.log(data);
     } catch (error) {
-      toast.error("Error uploading receipt.");
+      debugger;
+      if (error.name === "AbortError") {
+        toast.error("Request timed out.");
+      } else {
+        toast.error(error.message || "Error uploading file.");
+      }
       console.error("Error:", error);
+    } finally {
+      debugger;
+      setLoading(false);
     }
   };
 
@@ -70,83 +117,105 @@ export default function UploadReceipt() {
       justifyContent="center"
       alignItems="center"
     >
-      <Box width="400px" padding="6" boxShadow="lg" borderRadius="md">
-        <Heading mb="6">Upload Receipt</Heading>
-        <FormControl isRequired>
-          <FormLabel>Date of Receipt</FormLabel>
-          <Input
-            placeholder="DD/MM/YYYY"
-            value={dateOfReceipt}
-            onChange={(e) => setDateOfReceipt(e.target.value)}
-          />
-        </FormControl>
-
-        <FormControl isRequired>
-          <FormLabel marginTop={2}>Amount</FormLabel>
-          <NumberInput
-            precision={2}
-            value={amount}
-            onChange={(valueString) => setAmount(valueString)}
+      <form
+        className="form"
+        id="upload-form"
+        autoComplete="on"
+        onSubmit={handleSubmit}
+      >
+        <Stack spacing={4}>
+          <Heading mb="6">Upload Receipt</Heading>
+          <FormControl isRequired>
+            <FormLabel>Date of Receipt</FormLabel>
+            <Input
+              type="date"
+              placeholder="DD/MM/YYYY"
+              value={dateOfReceipt}
+              onChange={(e) => setDateOfReceipt(e.target.value)}
+            />
+          </FormControl>
+          <FormControl isRequired>
+            <FormLabel marginTop={2}>Amount</FormLabel>
+            <NumberInput
+              precision={2}
+              value={amount}
+              onChange={(valueString) => setAmount(valueString)}
+            >
+              <NumberInputField placeholder="0.00" />
+            </NumberInput>
+          </FormControl>
+          <FormControl>
+            <FormLabel marginTop={2}>Project Code</FormLabel>
+            <Input
+              placeholder="Enter Project Code"
+              value={projectCode}
+              onChange={(e) => setProjectCode(e.target.value)}
+            />
+          </FormControl>
+          <FormControl isRequired>
+            <FormLabel marginTop={2}>Merchant</FormLabel>
+            <Select
+              placeholder="Select Merchant"
+              value={merchant}
+              onChange={(e) => setMerchant(e.target.value)}
+            >
+              <option value="Badsha Enterprise">Badsha Enterprise</option>
+              <option value="Korim Enterprise">Korim Enterprise</option>
+            </Select>
+          </FormControl>
+          <FormControl isRequired>
+            <FormLabel marginTop={2}>School</FormLabel>
+            <Select
+              placeholder="Select School Name"
+              value={school}
+              onChange={(e) => setSchool(e.target.value)}
+            >
+              <option value="Al Quran Educational Institute">
+                Al Quran Educational Institute
+              </option>
+              <option value="Safura Begum Islamia Girls Madrasah">
+                Safura Begum Islamia Girls Madrasah
+              </option>
+              <option value="Islamia Girls Orphanage, Cox bazaar">
+                Islamia Girls Orphanage, Cox bazaar
+              </option>
+            </Select>
+          </FormControl>
+          <FormControl isRequired>
+            <FormLabel marginTop={2}>Country</FormLabel>
+            <Select
+              placeholder="Select country"
+              value={country}
+              onChange={(e) => setCountry(e.target.value)}
+            >
+              <option value="Bangladesh">Bangladesh</option>
+              <option value="Other">Other</option>
+            </Select>
+          </FormControl>
+          <FormControl isRequired>
+            <FormLabel marginTop={2}>Upload File (JPEG or PDF)</FormLabel>
+            <Input
+              type="file"
+              accept=".jpeg, .jpg, .png, .pdf"
+              onChange={handleFileChange}
+            />
+          </FormControl>
+          <Button
+            type="submit"
+            colorScheme="pink"
+            variant="solid"
+            color="white"
+            bg="#E42281"
+            pb-role="submit"
+            isLoading={loading}
+            // onClick={handleSubmit}
           >
-            <NumberInputField placeholder="0.00" />
-          </NumberInput>
-        </FormControl>
-
-        <FormControl isRequired>
-          <FormLabel marginTop={2}>Project Code</FormLabel>
-          <Input
-            placeholder="Enter Project Code"
-            value={projectCode}
-            onChange={(e) => setProjectCode(e.target.value)}
-          />
-        </FormControl>
-
-        <FormControl isRequired>
-          <FormLabel marginTop={2}>Merchant</FormLabel>
-          <Input
-            placeholder="Enter Merchant"
-            value={merchant}
-            onChange={(e) => setMerchant(e.target.value)}
-          />
-        </FormControl>
-
-        <FormControl isRequired>
-          <FormLabel marginTop={2}>School</FormLabel>
-          <Input
-            placeholder="Enter School Name"
-            value={school}
-            onChange={(e) => setSchool(e.target.value)}
-          />
-        </FormControl>
-
-        <FormControl isRequired>
-          <FormLabel marginTop={2}>Country</FormLabel>
-          <Select
-            placeholder="Select country"
-            value={country}
-            onChange={(e) => setCountry(e.target.value)}
-          >
-            <option value="Bangladesh">Bangladesh</option>
-            <option value="Other">Other</option>
-          </Select>
-        </FormControl>
-
-        <FormControl isRequired>
-          <FormLabel marginTop={2}>Upload File (JPEG or PDF)</FormLabel>
-          <Input
-            type="file"
-            accept=".jpeg, .jpg, .png, .pdf"
-            onChange={handleFileChange}
-          />
-        </FormControl>
-
-        <Stack spacing={4} direction="row" align="center" mt="4">
-          <Button colorScheme="pink" size="md" onClick={Upload}>
             Submit
           </Button>
+          <ToastContainer />
         </Stack>
-        <ToastContainer />
-      </Box>
+      </form>
     </Box>
   );
 }
+export default UploadReceipt;

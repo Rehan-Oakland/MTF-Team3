@@ -52,7 +52,6 @@ function RejectedReceipt() {
       if (user?.admin && user?.email) {
         return user.email;
       }
-      toast("User is not admin");
       return null;
     } catch (error) {
       console.error("Error retrieving user email from local storage:", error);
@@ -129,13 +128,21 @@ function RejectedReceipt() {
             alignItems="center"
             justifyContent="space-between"
           >
-            <VStack align="start" spacing={2}>
+            <Image
+              src={receipt.receipt_url}
+              alt="Receipt"
+              boxSize="150px"
+              objectFit="cover"
+              cursor="pointer"
+              onClick={() => handleViewReceipt(receipt)}
+            />
+            <VStack align="start" spacing={2} ml={4}>
               <Text><strong>Receipt Date:</strong> {receipt.receipt_date}</Text>
               <Text><strong>Country:</strong> {receipt.country}</Text>
               <Text><strong>Project Code:</strong> {receipt.project_code}</Text>
               <Text><strong>School Name:</strong> {receipt.school_name}</Text>
               <Text><strong>Merchant Name:</strong> {receipt.merchant_name}</Text>
-              <Text><strong>Reason:</strong> {receipt.reason}</Text>
+              <Text color="red"><strong>Reason:</strong> {receipt.reason}</Text>
             </VStack>
             <Button
               onClick={(event) => {
@@ -169,14 +176,16 @@ function RejectedReceipt() {
               )}
             </Box>
             {selectedReceipt && (
-              <VStack align="start" spacing={2}>
-                <Text><strong>Country:</strong> {selectedReceipt.country}</Text>
-                <Text><strong>Project Code:</strong> {selectedReceipt.project_code}</Text>
-                <Text><strong>School Name:</strong> {selectedReceipt.school_name}</Text>
-                <Text><strong>Merchant Name:</strong> {selectedReceipt.merchant_name}</Text>
-                <Text><strong>Receipt Date:</strong> {selectedReceipt.receipt_date}</Text>
-                <Text><strong>Reason:</strong> {selectedReceipt.reason}</Text>
-              </VStack>
+              <>
+                <Box mb={3}>
+                  <Text>Country: {selectedReceipt.country}</Text>
+                  <Text>Project Code: {selectedReceipt.project_code}</Text>
+                  <Text>School Name: {selectedReceipt.school_name}</Text>
+                  <Text>Merchant Name: {selectedReceipt.merchant_name}</Text>
+                  <Text>Receipt Date: {selectedReceipt.receipt_date}</Text>
+                  <Text color="red">Reason: {selectedReceipt.reason}</Text>
+                </Box>
+              </>
             )}
             <FormControl>
               <FormLabel htmlFor="reason">Reason (required):</FormLabel>
@@ -229,3 +238,4 @@ function RejectedReceipt() {
 }
 
 export default RejectedReceipt;
+

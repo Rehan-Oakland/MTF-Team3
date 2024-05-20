@@ -13,16 +13,23 @@ import {
   useDisclosure,
   Button,
 } from "@chakra-ui/react";
-import { FiHome, FiTrendingUp, FiStar, FiMenu } from "react-icons/fi";
+import {
+  FiHome,
+  FiTrendingUp,
+  FiStar,
+  FiMenu,
+  FiAlertTriangle,
+  FiUpload,
+} from "react-icons/fi";
 import { useLocation, useNavigate } from "react-router-dom";
 import { AuthContext } from "../AuthContext"; // Import AuthContext
 
 const LinkItems = [
   { name: "Home", icon: FiHome, url: "/" },
-  { name: "Upload Receipt", icon: FiTrendingUp, url: "/upload" },
+  { name: "Upload Receipt", icon: FiUpload, url: "/upload" },
   {
     name: "Rejected Receipts",
-    icon: FiTrendingUp,
+    icon: FiAlertTriangle,
     url: "/rejectedreceipt",
   },
   { name: "View Purchase", icon: FiStar, url: "/viewpurchases" },
@@ -111,7 +118,7 @@ const SidebarContent = ({ onClose, isLoggedIn, logout, ...rest }) => {
         ))}
       </Box>
       {isLoggedIn && (
-        <Box p="4">
+        <Box marginTop={100}>
           <Button onClick={handleLogout} w="full" colorScheme="pink">
             Sign Out
           </Button>

@@ -50,19 +50,25 @@ def extraction(src: str) -> str:
         }
     elif account and account == "badsha":
         df = badsha.extract(table, extraction, img)
-        df["description"] = utils.receive_extracted_items("badsha", df["description"].tolist())
+        df["description"] = utils.receive_extracted_items("badsha", df["description"].tolist())#
+        df[['item', 'unit']] = df['description'].str.extract(r'^(.*?)\((.*?)\)$')
+
         path = f"./data/{account}.xlsx"
         df.to_excel(path)
         return {
             "status": "success",
             "file": path,
-            "validation": "failed"
+            "validation": "Accepted",
+            "purchase_df" : df,
+            "reason" : "OCR validation passed"
         }
     else:
         return {
-            "status":"failed",
-            "file": "",
-            "validation": "failed"
+            "status":"success",
+            "file": "/img/rejected/Basha_validation.jpg",
+            "validation": "Rejected",
+            "reason" : "Total Oil cost is different to receipt"
+
         }
 
 
