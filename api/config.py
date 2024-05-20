@@ -52,8 +52,8 @@ swap_digits = {"y":"4", "Y":"4", "z": "2", "Z": "2", "o": "0", "O":"0",
 
 
 all_available ={
-    "SGS": ['Bread', 'Fruit', 'Milk', 'Rice', 'Vegetable', 'Lentils', 'Meat'],
-    "BADSHA": ['Oil(Liters)', 'Onion(kg)', 'Milk(Litres)', 'salt(kg)', 'Mix masala & Chillies(kg)', 'Lentil(Kg)', 'Spinach(kg)', 'Beans(kg)', 'Cauliflower(kg)', 'Tomato(kg)', 'Brinjal(kg)', 'Okra(kg)', 'Rice(kg)', 'Potato(kg)'],
-    "KORIM": ['Oil', 'Onion', 'Milk', 'Salt', 'Mix Masala and chillies', 'Lentils', 'Spinach', 'Beans', 'Cauliflower', 'Tomato', 'Brinjal', 'Okra', 'Rice', 'Potato']
+    "sayma": ['Bread', 'Fruit', 'Milk', 'Rice', 'Vegetable', 'Lentils', 'Meat'],
+    "badsha": ['Oil(Liters)', 'Onion(kg)', 'Milk(Litres)', 'salt(kg)', 'Mix masala & Chillies(kg)', 'Lentil(Kg)', 'Spinach(kg)', 'Beans(kg)', 'Cauliflower(kg)', 'Tomato(kg)', 'Brinjal(kg)', 'Okra(kg)', 'Rice(kg)', 'Potato(kg)'],
+    "korim": ['Oil', 'Onion', 'Milk', 'Salt', 'Mix Masala and chillies', 'Lentils', 'Spinach', 'Beans', 'Cauliflower', 'Tomato', 'Brinjal', 'Okra', 'Rice', 'Potato']
 }
 

@@ -20,6 +20,8 @@ def get_column_cell(extracted_table: ExtractedTable, top: int = 5) -> list:
 def is_duplicates(row1, row2) -> bool:
   overlap = max(0, (min(row1["x2"], row2["x2"]) - max(row1["x1"], row2["x1"])))
   min_wt = min(row1["wt"], row2["wt"])
+  if min_wt < 1:
+    return False
   return (overlap/min_wt) > 0.45
 
 

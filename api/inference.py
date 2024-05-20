@@ -7,6 +7,17 @@ import badsha
 import korim
 
 
+
+# def validate(src: str) -> str:
+#     doc = Image(src, detect_rotation = False)
+#     tables = doc.extract_tables(ocr = model.ocr, implicit_rows = False,
+#                                 borderless_tables = False, min_confidence = 50)
+    
+#     if w:=len(tables) > 1:
+#         fo
+
+
+
 def extraction(src: str) -> str:
     doc = Image(src, detect_rotation = False)
     tables = doc.extract_tables(ocr = model.ocr,
@@ -39,19 +50,22 @@ def extraction(src: str) -> str:
         }
     elif account and account == "badsha":
         df = badsha.extract(table, extraction, img)
+        df["description"] = utils.receive_extracted_items("badsha", df["description"].tolist())
         path = f"./data/{account}.xlsx"
         df.to_excel(path)
         return {
             "status": "success",
-            "file": path
+            "file": path,
+            "validation": "failed"
         }
     else:
         return {
             "status":"failed",
-            "file": ""
+            "file": "",
+            "validation": "failed"
         }
 
 
 
 if __name__ == "__main__":
-    print(extraction("./data/full_Badsha_bgr.jpg"))
+    print(extraction("./data/badsha_account_image.jpg"))
