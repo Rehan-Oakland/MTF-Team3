@@ -71,6 +71,7 @@ function RejectedReceipt() {
       const userEmail = getUserEmail();
       if (!userEmail) {
         console.error("Failed to retrieve user email for API call.");
+        toast.error("user needs to be logged in");
         return;
       }
 
@@ -137,12 +138,24 @@ function RejectedReceipt() {
               onClick={() => handleViewReceipt(receipt)}
             />
             <VStack align="start" spacing={2} ml={4}>
-              <Text><strong>Receipt Date:</strong> {receipt.receipt_date}</Text>
-              <Text><strong>Country:</strong> {receipt.country}</Text>
-              <Text><strong>Project Code:</strong> {receipt.project_code}</Text>
-              <Text><strong>School Name:</strong> {receipt.school_name}</Text>
-              <Text><strong>Merchant Name:</strong> {receipt.merchant_name}</Text>
-              <Text color="red"><strong>Reason:</strong> {receipt.reason}</Text>
+              <Text>
+                <strong>Receipt Date:</strong> {receipt.receipt_date}
+              </Text>
+              <Text>
+                <strong>Country:</strong> {receipt.country}
+              </Text>
+              <Text>
+                <strong>Project Code:</strong> {receipt.project_code}
+              </Text>
+              <Text>
+                <strong>School Name:</strong> {receipt.school_name}
+              </Text>
+              <Text>
+                <strong>Merchant Name:</strong> {receipt.merchant_name}
+              </Text>
+              <Text color="red">
+                <strong>Reason:</strong> {receipt.reason}
+              </Text>
             </VStack>
             <Button
               onClick={(event) => {
@@ -168,11 +181,17 @@ function RejectedReceipt() {
           <ModalBody>
             <Box mb={3}>
               {selectedReceipt?.receipt_url && (
-                <Image
-                  src={selectedReceipt.receipt_url}
-                  alt="Receipt"
-                  boxSize="300px"
-                />
+                <a
+                  href={selectedReceipt.receipt_url}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                >
+                  <Image
+                    src={selectedReceipt.receipt_url}
+                    alt="Receipt"
+                    boxSize="300px"
+                  />
+                </a>
               )}
             </Box>
             {selectedReceipt && (
@@ -238,4 +257,3 @@ function RejectedReceipt() {
 }
 
 export default RejectedReceipt;
-

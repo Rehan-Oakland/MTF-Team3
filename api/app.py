@@ -164,68 +164,70 @@ def logout():
 
 
 @app.route('/upload', methods=['POST'])
-def upload():
-
-    try:
-        
-        file = request.files['file']
-        if file.filename == '':
-            return jsonify({"message": "No selected file"}), 400
-        filename = secure_filename(file.filename)
-        filepath = os.path.join(r"C:/Users/RehanHussain/OneDrive - Oakland Group/Documents/MTF/MTF-Team3/public/img", filename)
-        file.save(filepath)
-        extraction_result = extraction(filepath)
-        status = extraction_result.get("validation") 
-        user = User.query.filter_by(username=request.form.get('email')).first()        
+def upload():        
+    file = request.files['file']
+    if file.filename == '':
+        return jsonify({"message": "No selected file"}), 400
+    filename = secure_filename(file.filename)
+    cw =os.getcwd()
+    filepath = os.path.join(cw, "public", "img", filename)
 
 
-        receipt_date = datetime.strptime(request.form.get('receipt_date'), "%Y-%M-%d")
+    file.save(filepath)
 
-        # Cut down file path so its on from /img
-        # print()
+    extraction_result = extraction(filepath)
+    os.chdir("public")
+    relative_path = os.path.relpath(filename)
+
+    status = extraction_result.get("validation") 
+    user = User.query.filter_by(username=request.form.get('email')).first()        
 
 
-        new_receipt = Receipt(
-            user_id=user.id,
-            country=request.form.get('country'),
-            project_code=request.form.get('project_code'),
-            school_name=request.form.get('school_name'),
-            merchant_name=request.form.get('merchant_name'),
-            receipt_date=receipt_date,
-            receipt_url=filepath,
-            status=status,
-            reason=extraction_result.get("reason"),
-            rejected_url = extraction_result.get("file")
-        )
-        db.session.add(new_receipt)
+    receipt_date = datetime.strptime(request.form.get('receipt_date'), "%Y-%M-%d")
+
+    # Cut down file path so its on from /img
+    # print()
+
+
+    new_receipt = Receipt(
+        user_id=user.id,
+        country=request.form.get('country'),
+        project_code=request.form.get('project_code'),
+        school_name=request.form.get('school_name'),
+        merchant_name=request.form.get('merchant_name'),
+        receipt_date=receipt_date,
+        receipt_url=relative_path,
+        status=status,
+        reason=extraction_result.get("reason"),
+        rejected_url = extraction_result.get("file")
+    )
+    db.session.add(new_receipt)
+    db.session.commit()
+
+
+    if status == "Accepted":
+        df = extraction_result.get("purchase_df")
+        # Add each row to the database
+        for _, row in df.iterrows():
+            new_purchase = Purchase(
+                user_id=user.id,  # Replace with appropriate user_id
+                project_code=request.form.get('project_code'),  # Replace with appropriate project_code
+                school_name=request.form.get('school_name'),  # Replace with appropriate school_name
+                receipt_id=new_receipt.id,  # Replace with appropriate receipt_id
+                item=row['item'],
+                unit=row['unit'],
+                quantity=row['quantity'],
+                total_cost_bdt=row['amount'],
+                unit_price_bdt=row['price'],
+                date_purchased=receipt_date # Replace with appropriate date if necessary
+            )
+            db.session.add(new_purchase)
+
+        # Commit the session to save the records
         db.session.commit()
+        return jsonify({"message": "Receipt uploaded and validated succesfully"}), 200
+    return jsonify({"message": "failed to validate receipt please check in rejected receipts to see why"}), 200
 
-
-        if status == "Accepted":
-            df = extraction_result.get("purchase_df")
-            # Add each row to the database
-            for _, row in df.iterrows():
-                new_purchase = Purchase(
-                    user_id=user.id,  # Replace with appropriate user_id
-                    project_code=request.form.get('project_code'),  # Replace with appropriate project_code
-                    school_name=request.form.get('school_name'),  # Replace with appropriate school_name
-                    receipt_id=new_receipt.id,  # Replace with appropriate receipt_id
-                    item=row['item'],
-                    unit=row['unit'],
-                    quantity=row['quantity'],
-                    total_cost_bdt=row['amount'],
-                    unit_price_bdt=row['price'],
-                    date_purchased=receipt_date # Replace with appropriate date if necessary
-                )
-                db.session.add(new_purchase)
-
-            # Commit the session to save the records
-            db.session.commit()
-            return jsonify({"message": "Receipt uploaded and validated succesfully"}), 200
-        return jsonify({"message": "failed to validate receipt please check in rejected receipts to see why"}), 200
-    except Exception as e:
-        print(f"Error: {e}")
-        return jsonify({"message": "Internal server error"}), 500
     
 
 

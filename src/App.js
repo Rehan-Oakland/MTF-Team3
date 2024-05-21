@@ -24,7 +24,7 @@ function App() {
               <Route exact path="/" element={<LoginPage />} />
               <Route exact path="/register" element={<RegisterPage />} />
               <Route path="/home" element={<HomePage />} />
-              <Route path="/rejectedreceipt" element={<RejectedReceipt />} />
+              <Route path="/rejected" element={<RejectedReceipt />} />
               <Route path="/upload" element={<UploadReceipt />} />
               <Route path="/viewpurchases" element={<ViewPurchasesPage />} />
               {/* <Route

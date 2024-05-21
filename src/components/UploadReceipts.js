@@ -11,11 +11,10 @@ import {
   Stack,
   Heading,
 } from "@chakra-ui/react";
-import { ToastContainer, toast } from "react-toastify";
+import { toast } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
 
 const BASE_URL = process.env.REACT_APP_BASE_URL;
-const FETCH_TIMEOUT = 60000; // 60 seconds timeout
 
 function UploadReceipt() {
   const [dateOfReceipt, setDateOfReceipt] = useState("");
@@ -69,24 +68,23 @@ function UploadReceipt() {
     formData.append("file", file);
     formData.append("email", userEmail);
 
-    const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), FETCH_TIMEOUT);
     debugger;
 
     try {
       const response = await fetch(`${BASE_URL}/upload`, {
         method: "POST",
         body: formData,
-        signal: controller.signal,
+        headers: {
+          Accept: "*/*",
+        },
       });
-
-      clearTimeout(timeoutId);
-
-      const data = await response.json();
+      debugger;
 
       if (!response.ok) {
         throw new Error(data.message || "Error uploading file");
       }
+
+      const data = await response.json();
 
       if (response.status === 201) {
         toast.error(data.message);
@@ -117,12 +115,7 @@ function UploadReceipt() {
       justifyContent="center"
       alignItems="center"
     >
-      <form
-        className="form"
-        id="upload-form"
-        autoComplete="on"
-        onSubmit={handleSubmit}
-      >
+      <form className="form" id="upload-form" autoComplete="on">
         <Stack spacing={4}>
           <Heading mb="6">Upload Receipt</Heading>
           <FormControl isRequired>
@@ -201,18 +194,17 @@ function UploadReceipt() {
             />
           </FormControl>
           <Button
-            type="submit"
+            type="button"
             colorScheme="pink"
             variant="solid"
             color="white"
             bg="#E42281"
             pb-role="submit"
             isLoading={loading}
-            // onClick={handleSubmit}
+            onClick={handleSubmit}
           >
             Submit
           </Button>
-          <ToastContainer />
         </Stack>
       </form>
     </Box>
